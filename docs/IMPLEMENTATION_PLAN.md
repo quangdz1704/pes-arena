@@ -23,9 +23,9 @@ Phase 1 code checkpoint passed. Applying the migration and seed to a live databa
 
 ### Phase 2 — Core Match
 
-- [ ] Build 1v1 and 2v2 match creation.
-- [ ] Add random players, pair shuffle, team pools, pure/balanced random, and rerolls.
-- [ ] Add match start, mobile score entry, persistence, and history.
+- [x] Build 1v1 and 2v2 match creation.
+- [x] Add random players, pair shuffle, team pools, pure/balanced random, and rerolls.
+- [x] Add match start, mobile score entry, persistence, and history.
 
 ### Phase 3 — Statistics
 

@@ -23,6 +23,14 @@ export function toActionError(error: unknown): ActionState {
       "DATABASE_URL chưa được cấu hình.",
       "Không tìm thấy nhóm đội.",
       "Danh sách đội chứa đội không tồn tại.",
+      "Không đủ lựa chọn để random.",
+      "Cần đúng 4 người chơi khác nhau để ghép cặp.",
+      "Chỉ có thể chọn người chơi đang hoạt động.",
+      "Nhóm đội không tồn tại hoặc đang bị ẩn.",
+      "Hai bên phải dùng hai đội bóng khác nhau.",
+      "Đội bóng phải thuộc nhóm đội đã chọn.",
+      "Hai đội cân bằng cần cùng tier hoặc có rating gần nhau.",
+      "Trận đấu không tồn tại hoặc đã được lưu kết quả.",
     ]);
 
     if (safeMessages.has(error.message)) {
