@@ -15,6 +15,13 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { initialActionState } from "@/lib/action-state";
 import type {
   MatchPlayerDto,
@@ -72,7 +79,6 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
   const [teamIds, setTeamIds] = useState<
     [string | undefined, string | undefined] | null
   >(null);
-  const [manualSide, setManualSide] = useState<"A" | "B">("A");
   const [rerollCount, setRerollCount] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
   const [isRanked, setIsRanked] = useState(true);
@@ -179,11 +185,9 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
     setMatchSetupMode(nextMode);
     setTeamIds(null);
     setRerollCount(0);
-    setManualSide("A");
   }
 
-  function selectManualTeam(teamId: string) {
-    const sideIndex = manualSide === "A" ? 0 : 1;
+  function selectManualTeam(sideIndex: 0 | 1, teamId: string) {
     const otherSideIndex = sideIndex === 0 ? 1 : 0;
 
     setTeamIds((current) => {
@@ -200,7 +204,6 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
 
       return next;
     });
-    setManualSide(manualSide === "A" ? "B" : "A");
   }
 
   function randomTeams() {
@@ -450,37 +453,39 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
               </Button>
             </>
           ) : (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                {(["A", "B"] as const).map((side) => (
-                  <button
-                    className={`rounded-xl border p-3 text-left transition ${manualSide === side ? "border-primary bg-primary/10" : "border-white/10 bg-background/40 hover:border-white/25"}`}
-                    key={side}
-                    onClick={() => setManualSide(side)}
-                    type="button"
-                  >
-                    <span className="text-xs font-bold tracking-[0.18em] text-muted-foreground">SIDE {side}</span>
-                    <span className="mt-1 block font-black">{selectedTeams?.[side === "A" ? 0 : 1]?.name ?? "Chọn đội"}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {selectedPool?.teams.map((team) => {
-                  const selectedIndex = teamIds?.indexOf(team.id);
-                  return (
-                    <button
-                      className={`rounded-xl border p-3 text-left transition ${selectedIndex !== undefined && selectedIndex !== -1 ? "border-primary bg-primary/10" : "border-white/10 bg-background/40 hover:border-white/25"}`}
-                      key={team.id}
-                      onClick={() => selectManualTeam(team.id)}
-                      type="button"
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([0, 1] as const).map((sideIndex) => {
+                const otherTeamId = teamIds?.[sideIndex === 0 ? 1 : 0];
+                const sideLabel = sideIndex === 0 ? "A" : "B";
+
+                return (
+                  <div key={sideIndex}>
+                    <p className="mb-2 text-xs font-bold tracking-[0.18em] text-muted-foreground">
+                      SIDE {sideLabel}
+                    </p>
+                    <Select
+                      onValueChange={(teamId) => selectManualTeam(sideIndex, teamId)}
+                      value={teamIds?.[sideIndex]}
                     >
-                      <span className="font-bold">{team.name}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">Tier {team.tier} · {team.rating}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={`Chọn đội cho Side ${sideLabel}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedPool?.teams.map((team) => (
+                          <SelectItem
+                            disabled={team.id === otherTeamId}
+                            key={team.id}
+                            value={team.id}
+                          >
+                            {team.name} · Tier {team.tier} · {team.rating}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+            </div>
           )}
           <div
             className={`grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center ${isRolling ? "animate-pulse" : ""}`}
