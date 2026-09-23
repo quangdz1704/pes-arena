@@ -6,9 +6,9 @@ import { sendMatchResultToDiscord } from "@/lib/discord/match-result";
 import {
   createPlayingMatchRecord,
   finishMatchRecord,
-  getActiveMatchRecord,
   getMatchRecord,
   getMatchSetupRecords,
+  listActiveMatchRecords,
   listMatchHistoryRecords,
 } from "@/repositories/match.repository";
 
@@ -96,8 +96,8 @@ export async function getMatch(id: string) {
   return getMatchRecord(id);
 }
 
-export async function getActiveMatch() {
-  return getActiveMatchRecord();
+export async function listActiveMatches() {
+  return listActiveMatchRecords();
 }
 
 export async function listMatchHistory() {

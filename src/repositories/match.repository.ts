@@ -293,24 +293,30 @@ export async function getMatchRecord(id: string) {
   return toMatchDetail(match, sidesByMatch.get(id) ?? [], notesByMatch.get(id) ?? []);
 }
 
-export async function getActiveMatchRecord() {
-  const [match] = await getDb()
+export async function listActiveMatchRecords(limit = 20): Promise<MatchDetailDto[]> {
+  const matchRows = await getDb()
     .select()
     .from(matches)
     .where(eq(matches.status, "PLAYING"))
     .orderBy(desc(matches.updatedAt), desc(matches.createdAt))
-    .limit(1);
-  if (!match) return null;
+    .limit(limit);
 
+  if (matchRows.length === 0) return [];
+
+  const matchIds = matchRows.map((match) => match.id);
   const [sidesByMatch, notesByMatch] = await Promise.all([
-    getSidesForMatches([match.id]),
-    getNotesForMatches([match.id]),
+    getSidesForMatches(matchIds),
+    getNotesForMatches(matchIds),
   ]);
-  return toMatchDetail(
-    match,
-    sidesByMatch.get(match.id) ?? [],
-    notesByMatch.get(match.id) ?? [],
-  );
+
+  return matchRows.flatMap((match) => {
+    const detail = toMatchDetail(
+      match,
+      sidesByMatch.get(match.id) ?? [],
+      notesByMatch.get(match.id) ?? [],
+    );
+    return detail ? [detail] : [];
+  });
 }
 
 export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDto[]> {
