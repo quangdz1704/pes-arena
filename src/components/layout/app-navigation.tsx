@@ -78,7 +78,7 @@ export function DesktopSidebar() {
         </span>
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
+      <nav aria-label="Điều hướng chính" className="flex flex-1 flex-col gap-5 overflow-y-auto">
         {desktopSections.map((section, sectionIndex) => (
           <div key={section.label ?? sectionIndex} className="space-y-1">
             {section.label ? (
@@ -93,6 +93,7 @@ export function DesktopSidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "flex h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-white/6 hover:text-foreground",
                     active && "bg-white/8 text-foreground",
@@ -116,7 +117,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 grid h-[4.75rem] grid-cols-5 border-t border-white/10 bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+    <nav aria-label="Điều hướng nhanh" className="fixed inset-x-0 bottom-0 z-50 grid h-[4.75rem] grid-cols-5 border-t border-white/10 bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
       {mobileItems.map((item) => {
         const Icon = item.icon;
         const active = isActivePath(pathname, item.href);
@@ -126,6 +127,7 @@ export function MobileBottomNav() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "relative flex flex-col items-center justify-center gap-1 text-[0.65rem] font-semibold text-muted-foreground",
               active && "text-primary",
