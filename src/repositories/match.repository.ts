@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -15,6 +15,7 @@ import {
   teamPools,
   teams,
 } from "@/db/schema";
+import type { LeaderboardMatchMode, LeaderboardMatchRow } from "@/services/leaderboard";
 
 export type MatchPlayerDto = {
   id: string;
@@ -340,6 +341,44 @@ export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDt
     );
     return detail ? [detail] : [];
   });
+}
+
+export async function listLeaderboardMatchRows({
+  matchMode,
+  startDate,
+}: {
+  matchMode: LeaderboardMatchMode;
+  startDate: Date | null;
+}): Promise<LeaderboardMatchRow[]> {
+  const conditions = [
+    eq(matches.status, "FINISHED"),
+    eq(matches.isRanked, true),
+  ];
+  if (matchMode !== "ALL") conditions.push(eq(matches.matchMode, matchMode));
+  if (startDate) conditions.push(gte(matches.playedAt, startDate));
+
+  return getDb()
+    .select({
+      matchId: matches.id,
+      matchMode: matches.matchMode,
+      playedAt: matches.playedAt,
+      playerId: players.id,
+      playerName: players.name,
+      side: matchSides.side,
+      score: matchSides.score,
+    })
+    .from(matches)
+    .innerJoin(matchSides, eq(matchSides.matchId, matches.id))
+    .innerJoin(
+      matchSidePlayers,
+      and(
+        eq(matchSidePlayers.matchId, matches.id),
+        eq(matchSidePlayers.matchSideId, matchSides.id),
+      ),
+    )
+    .innerJoin(players, eq(players.id, matchSidePlayers.playerId))
+    .where(and(...conditions))
+    .orderBy(asc(matches.playedAt), asc(matches.id));
 }
 
 export async function finishMatchRecord(
