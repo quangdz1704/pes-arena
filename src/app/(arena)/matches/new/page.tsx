@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { DatabaseSetupNotice } from "@/components/shared/database-setup-notice";
 import { PageHeading } from "@/components/shared/page-heading";
 import { isDatabaseConfigured } from "@/db";
-import { getMatchSetup } from "@/services/match.service";
+import { getActiveMatch, getMatchSetup } from "@/services/match.service";
 
 import { MatchBuilder } from "./match-builder";
 
@@ -12,6 +13,10 @@ export const dynamic = "force-dynamic";
 
 export default async function NewMatchPage() {
   const databaseReady = isDatabaseConfigured();
+  const activeMatch = databaseReady ? await getActiveMatch() : null;
+
+  if (activeMatch) redirect(`/matches/${activeMatch.id}`);
+
   const setup = databaseReady ? await getMatchSetup() : null;
 
   return (

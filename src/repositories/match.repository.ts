@@ -258,6 +258,19 @@ export async function getMatchRecord(id: string) {
   return toMatchDetail(match, sidesByMatch.get(id) ?? []);
 }
 
+export async function getActiveMatchRecord() {
+  const [match] = await getDb()
+    .select()
+    .from(matches)
+    .where(eq(matches.status, "PLAYING"))
+    .orderBy(desc(matches.updatedAt), desc(matches.createdAt))
+    .limit(1);
+  if (!match) return null;
+
+  const sidesByMatch = await getSidesForMatches([match.id]);
+  return toMatchDetail(match, sidesByMatch.get(match.id) ?? []);
+}
+
 export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDto[]> {
   const matchRows = await getDb()
     .select()

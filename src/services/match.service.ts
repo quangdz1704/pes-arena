@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   createPlayingMatchRecord,
   finishMatchRecord,
+  getActiveMatchRecord,
   getMatchRecord,
   getMatchSetupRecords,
   listMatchHistoryRecords,
@@ -82,6 +83,10 @@ export async function startMatch(input: StartMatchInput) {
 
 export async function getMatch(id: string) {
   return getMatchRecord(id);
+}
+
+export async function getActiveMatch() {
+  return getActiveMatchRecord();
 }
 
 export async function listMatchHistory() {
