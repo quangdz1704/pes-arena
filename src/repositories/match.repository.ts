@@ -1,6 +1,8 @@
 import "server-only";
 
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
+
+import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -125,57 +127,54 @@ export async function getMatchSetupRecords(): Promise<MatchSetupDto> {
 }
 
 export async function createPlayingMatchRecord(values: CreateMatchValues) {
-  return getDb().transaction(async (tx) => {
-    const [match] = await tx
-      .insert(matches)
-      .values({
-        matchMode: values.matchMode,
-        status: "PLAYING",
-        teamPoolId: values.teamPoolId,
-        randomMode: values.randomMode,
-        isRanked: values.isRanked,
-        updatedAt: new Date(),
-      })
-      .returning({ id: matches.id });
-    if (!match) throw new Error("Không thể bắt đầu trận đấu.");
+  const db = getDb();
+  const matchId = randomUUID();
+  const sideAId = randomUUID();
+  const sideBId = randomUUID();
 
-    const [sideA, sideB] = await tx
-      .insert(matchSides)
-      .values([
-        {
-          matchId: match.id,
-          side: "A",
-          teamId: values.sideATeamId,
-          rerollCount: values.sideARerollCount,
-        },
-        {
-          matchId: match.id,
-          side: "B",
-          teamId: values.sideBTeamId,
-          rerollCount: values.sideBRerollCount,
-        },
-      ])
-      .returning({ id: matchSides.id, side: matchSides.side });
-    if (!sideA || !sideB) throw new Error("Không thể tạo hai bên thi đấu.");
-
-    const sideIdByName = new Map([ [sideA.side, sideA.id], [sideB.side, sideB.id] ]);
-    await tx.insert(matchSidePlayers).values([
+  await db.batch([
+    db.insert(matches).values({
+      id: matchId,
+      matchMode: values.matchMode,
+      status: "PLAYING",
+      teamPoolId: values.teamPoolId,
+      randomMode: values.randomMode,
+      isRanked: values.isRanked,
+      updatedAt: new Date(),
+    }),
+    db.insert(matchSides).values([
+      {
+        id: sideAId,
+        matchId,
+        side: "A",
+        teamId: values.sideATeamId,
+        rerollCount: values.sideARerollCount,
+      },
+      {
+        id: sideBId,
+        matchId,
+        side: "B",
+        teamId: values.sideBTeamId,
+        rerollCount: values.sideBRerollCount,
+      },
+    ]),
+    db.insert(matchSidePlayers).values([
       ...values.sideAPlayerIds.map((playerId, index) => ({
-        matchId: match.id,
-        matchSideId: sideIdByName.get("A")!,
+        matchId,
+        matchSideId: sideAId,
         playerId,
         position: index + 1,
       })),
       ...values.sideBPlayerIds.map((playerId, index) => ({
-        matchId: match.id,
-        matchSideId: sideIdByName.get("B")!,
+        matchId,
+        matchSideId: sideBId,
         playerId,
         position: index + 1,
       })),
-    ]);
+    ]),
+  ]);
 
-    return match;
-  });
+  return { id: matchId };
 }
 
 async function getSidesForMatches(matchIds: string[]) {
@@ -275,25 +274,21 @@ export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDt
 }
 
 export async function finishMatchRecord(id: string, sideAScore: number, sideBScore: number) {
-  return getDb().transaction(async (tx) => {
-    const [match] = await tx
-      .update(matches)
-      .set({ status: "FINISHED", playedAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(matches.id, id), eq(matches.status, "PLAYING")))
-      .returning({ id: matches.id });
-    if (!match) throw new Error("Trận đấu không tồn tại hoặc đã được lưu kết quả.");
+  const result = await getDb().execute(sql`
+    with finished_match as (
+      update matches
+      set status = 'FINISHED'::match_status, played_at = now(), updated_at = now()
+      where id = ${id} and status = 'PLAYING'::match_status
+      returning id
+    ), scored_sides as (
+      update match_sides
+      set score = case when side = 'A'::match_side then ${sideAScore} else ${sideBScore} end
+      where match_id in (select id from finished_match)
+    )
+    select id from finished_match
+  `);
+  const match = result.rows[0];
+  if (!match) throw new Error("Trận đấu không tồn tại hoặc đã được lưu kết quả.");
 
-    await Promise.all([
-      tx
-        .update(matchSides)
-        .set({ score: sideAScore })
-        .where(and(eq(matchSides.matchId, id), eq(matchSides.side, "A"))),
-      tx
-        .update(matchSides)
-        .set({ score: sideBScore })
-        .where(and(eq(matchSides.matchId, id), eq(matchSides.side, "B"))),
-    ]);
-
-    return match;
-  });
+  return match;
 }

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
@@ -63,52 +65,53 @@ export async function listTeamPoolRecords(): Promise<TeamPoolDto[]> {
 
 export async function saveTeamPoolRecord(values: SaveTeamPoolValues) {
   const db = getDb();
+  const poolId = values.id ?? randomUUID();
 
-  return db.transaction(async (tx) => {
-    const poolValues = {
-      name: values.name,
-      emoji: values.emoji,
-      description: values.description,
-      updatedAt: new Date(),
-    };
+  if (values.id) {
+    const [existingPool] = await db
+      .select({ id: teamPools.id })
+      .from(teamPools)
+      .where(eq(teamPools.id, poolId));
+    if (!existingPool) throw new Error("Không tìm thấy nhóm đội.");
+  }
 
-    const [pool] = values.id
-      ? await tx
-          .update(teamPools)
-          .set(poolValues)
-          .where(eq(teamPools.id, values.id))
-          .returning({ id: teamPools.id })
-      : await tx
-          .insert(teamPools)
-          .values(poolValues)
-          .returning({ id: teamPools.id });
-
-    if (!pool) throw new Error("Không tìm thấy nhóm đội.");
-
-    await tx
-      .delete(teamPoolMembers)
-      .where(eq(teamPoolMembers.teamPoolId, pool.id));
-
-    if (values.teamIds.length > 0) {
-      const activeTeams = await tx
+  if (values.teamIds.length > 0) {
+    const activeTeams = await db
         .select({ id: teams.id })
         .from(teams)
         .where(inArray(teams.id, values.teamIds));
 
-      if (activeTeams.length !== new Set(values.teamIds).size) {
-        throw new Error("Danh sách đội chứa đội không tồn tại.");
-      }
-
-      await tx.insert(teamPoolMembers).values(
-        activeTeams.map((team) => ({
-          teamPoolId: pool.id,
-          teamId: team.id,
-        })),
-      );
+    if (activeTeams.length !== new Set(values.teamIds).size) {
+      throw new Error("Danh sách đội chứa đội không tồn tại.");
     }
+  }
 
-    return pool;
-  });
+  const poolValues = {
+    name: values.name,
+    emoji: values.emoji,
+    description: values.description,
+    updatedAt: new Date(),
+  };
+  const poolQuery = values.id
+    ? db.update(teamPools).set(poolValues).where(eq(teamPools.id, poolId))
+    : db.insert(teamPools).values({ id: poolId, ...poolValues });
+  const deleteMembershipsQuery = db
+    .delete(teamPoolMembers)
+    .where(eq(teamPoolMembers.teamPoolId, poolId));
+
+  if (values.teamIds.length > 0) {
+    await db.batch([
+      poolQuery,
+      deleteMembershipsQuery,
+      db.insert(teamPoolMembers).values(
+        values.teamIds.map((teamId) => ({ teamPoolId: poolId, teamId })),
+      ),
+    ]);
+  } else {
+    await db.batch([poolQuery, deleteMembershipsQuery]);
+  }
+
+  return { id: poolId };
 }
 
 export async function setTeamPoolActiveRecord(
