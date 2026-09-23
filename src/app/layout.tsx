@@ -21,6 +21,15 @@ export const metadata: Metadata = {
     template: "%s | PES Arena",
   },
   description: "Gaming hub riêng cho hội PES: random, kết quả và bảng xếp hạng.",
+  applicationName: "PES Arena",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  appleWebApp: { capable: true, title: "PES Arena", statusBarStyle: "black-translucent" },
+};
+
+export const viewport = {
+  themeColor: "#6aff94",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
