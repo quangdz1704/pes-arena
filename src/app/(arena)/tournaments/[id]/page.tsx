@@ -23,6 +23,23 @@ export default async function TournamentDetailPage({
   for (const fixture of tournament.fixtures) {
     rounds.set(fixture.round, [...(rounds.get(fixture.round) ?? []), fixture]);
   }
+  const standings = tournament.competitors.map((competitor) => ({
+    ...competitor, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0,
+  }));
+  const standingByName = new Map(standings.map((standing) => [standing.name, standing]));
+  for (const fixture of tournament.fixtures) {
+    if (fixture.matchStatus !== "FINISHED" || fixture.homeScore === null || fixture.awayScore === null) continue;
+    const home = standingByName.get(fixture.homeName);
+    const away = standingByName.get(fixture.awayName);
+    if (!home || !away) continue;
+    home.played += 1; away.played += 1;
+    home.goalsFor += fixture.homeScore; home.goalsAgainst += fixture.awayScore;
+    away.goalsFor += fixture.awayScore; away.goalsAgainst += fixture.homeScore;
+    if (fixture.homeScore > fixture.awayScore) { home.wins += 1; away.losses += 1; home.points += 3; }
+    else if (fixture.homeScore < fixture.awayScore) { away.wins += 1; home.losses += 1; away.points += 3; }
+    else { home.draws += 1; away.draws += 1; home.points += 1; away.points += 1; }
+  }
+  standings.sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) || b.goalsFor - a.goalsFor || a.name.localeCompare(b.name));
 
   return (
     <div className="mx-auto max-w-5xl space-y-7">
@@ -49,9 +66,9 @@ export default async function TournamentDetailPage({
                 <tr><th className="px-2 py-2">#</th><th className="px-2 py-2">Tuyển thủ</th><th className="px-2 py-2 text-center">T</th><th className="px-2 py-2 text-center">W</th><th className="px-2 py-2 text-center">D</th><th className="px-2 py-2 text-center">L</th><th className="px-2 py-2 text-center">HS</th><th className="px-2 py-2 text-right">Điểm</th></tr>
               </thead>
               <tbody>
-                {tournament.competitors.map((competitor, index) => (
+                {standings.map((competitor, index) => (
                   <tr className="border-b last:border-0" key={competitor.id}>
-                    <td className="px-2 py-3">{index + 1}</td><td className="px-2 py-3 font-semibold">{competitor.name}</td><td className="px-2 py-3 text-center">0</td><td className="px-2 py-3 text-center">0</td><td className="px-2 py-3 text-center">0</td><td className="px-2 py-3 text-center">0</td><td className="px-2 py-3 text-center">0</td><td className="px-2 py-3 text-right font-black">0</td>
+                    <td className="px-2 py-3">{index + 1}</td><td className="px-2 py-3 font-semibold">{competitor.name}</td><td className="px-2 py-3 text-center">{competitor.played}</td><td className="px-2 py-3 text-center">{competitor.wins}</td><td className="px-2 py-3 text-center">{competitor.draws}</td><td className="px-2 py-3 text-center">{competitor.losses}</td><td className="px-2 py-3 text-center">{competitor.goalsFor - competitor.goalsAgainst}</td><td className="px-2 py-3 text-right font-black">{competitor.points}</td>
                   </tr>
                 ))}
               </tbody>
@@ -70,7 +87,15 @@ export default async function TournamentDetailPage({
                 {fixtures.map((fixture) => (
                   <div className="flex items-center justify-between gap-4 px-4 py-3" key={fixture.id}>
                     <p className="font-semibold">{fixture.homeName} <span className="text-muted-foreground">vs</span> {fixture.awayName}</p>
-                    <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-xs font-bold text-muted-foreground">{fixture.matchId ? "Đã tạo trận" : "Chưa đá"}</span>
+                    {fixture.matchId ? (
+                      <Link className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground" href={`/matches/${fixture.matchId}`}>
+                        {fixture.matchStatus === "FINISHED" ? `${fixture.homeScore} - ${fixture.awayScore}` : "Vào trận"}
+                      </Link>
+                    ) : (
+                      <Link className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground" href={`/matches/new?fixture=${fixture.id}`}>
+                        Bắt đầu trận
+                      </Link>
+                    )}
                   </div>
                 ))}
               </div>

@@ -25,6 +25,7 @@ export async function startMatchAction(
 
     revalidatePath("/");
     revalidatePath("/history");
+    revalidatePath("/tournaments");
     return { status: "success", matchId: match.id };
   } catch (error) {
     return toActionError(error);
@@ -47,6 +48,7 @@ export async function saveMatchScoreAction(
     revalidatePath("/");
     revalidatePath("/history");
     revalidatePath(`/matches/${input.matchId}`);
+    if (result.match.tournamentId) revalidatePath(`/tournaments/${result.match.tournamentId}`);
     const messageByDiscordStatus = {
       sent: "Đã lưu kết quả và gửi Discord.",
       not_configured: "Đã lưu kết quả. Discord chưa được cấu hình.",

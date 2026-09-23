@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { and, asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
@@ -14,6 +14,7 @@ import {
   teamPoolMembers,
   teamPools,
   teams,
+  tournamentFixtures,
 } from "@/db/schema";
 import type { LeaderboardMatchMode, LeaderboardMatchRow } from "@/services/leaderboard";
 
@@ -61,6 +62,7 @@ export type MatchNoteDto = {
 
 export type MatchDetailDto = {
   id: string;
+  tournamentId?: string | null;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
   status: "CREATED" | "PLAYING" | "FINISHED" | "CANCELLED";
   randomMode: "PURE" | "BALANCED" | null;
@@ -82,6 +84,8 @@ type CreateMatchValues = {
   sideBTeamId: string;
   sideARerollCount: number;
   sideBRerollCount: number;
+  tournamentId?: string;
+  tournamentFixtureId?: string;
 };
 
 function toPlayerDto(player: typeof players.$inferSelect): MatchPlayerDto {
@@ -145,6 +149,7 @@ export async function createPlayingMatchRecord(values: CreateMatchValues) {
       id: matchId,
       matchMode: values.matchMode,
       status: "PLAYING",
+      tournamentId: values.tournamentId,
       teamPoolId: values.teamPoolId,
       randomMode: values.randomMode,
       isRanked: values.isRanked,
@@ -180,6 +185,14 @@ export async function createPlayingMatchRecord(values: CreateMatchValues) {
         position: index + 1,
       })),
     ]),
+    ...(values.tournamentFixtureId
+      ? [
+          db
+            .update(tournamentFixtures)
+            .set({ matchId })
+            .where(and(eq(tournamentFixtures.id, values.tournamentFixtureId), isNull(tournamentFixtures.matchId))),
+        ]
+      : []),
   ]);
 
   return { id: matchId };
@@ -272,6 +285,7 @@ function toMatchDetail(
 
   return {
     id: match.id,
+    tournamentId: match.tournamentId,
     matchMode: match.matchMode,
     status: match.status,
     randomMode: match.randomMode,

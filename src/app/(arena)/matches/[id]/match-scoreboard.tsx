@@ -44,10 +44,10 @@ export function MatchScoreboard({ match }: { match: MatchDetailDto }) {
   useEffect(() => {
     if (state.status === "success") {
       toast.success(state.message);
-      router.push("/history");
+      router.push(match.tournamentId ? `/tournaments/${match.tournamentId}` : "/history");
     }
     if (state.status === "error" && state.message) toast.error(state.message);
-  }, [router, state]);
+  }, [match.tournamentId, router, state]);
 
   if (finished) {
     return (

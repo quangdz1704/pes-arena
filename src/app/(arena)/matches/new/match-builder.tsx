@@ -67,12 +67,28 @@ function StartMatchButton({ disabled }: { disabled: boolean }) {
   );
 }
 
-export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
+type TournamentFixtureStart = {
+  id: string;
+  tournamentId: string;
+  matchId: string | null;
+  homePlayerIds: string[];
+  awayPlayerIds: string[];
+  homeName: string;
+  awayName: string;
+};
+
+export function MatchBuilder({
+  setup,
+  tournamentFixture,
+}: {
+  setup: MatchSetupDto;
+  tournamentFixture: TournamentFixtureStart | null;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<MatchMode>("ONE_V_ONE");
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
-  const [sideAPlayerIds, setSideAPlayerIds] = useState<string[]>([]);
-  const [sideBPlayerIds, setSideBPlayerIds] = useState<string[]>([]);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => tournamentFixture ? [...tournamentFixture.homePlayerIds, ...tournamentFixture.awayPlayerIds] : []);
+  const [sideAPlayerIds, setSideAPlayerIds] = useState<string[]>(() => tournamentFixture?.homePlayerIds ?? []);
+  const [sideBPlayerIds, setSideBPlayerIds] = useState<string[]>(() => tournamentFixture?.awayPlayerIds ?? []);
   const [poolId, setPoolId] = useState(setup.pools[0]?.id ?? "");
   const [matchSetupMode, setMatchSetupMode] = useState<MatchSetupMode>("RANDOM");
   const [randomMode, setRandomMode] = useState<RandomMode>("BALANCED");
@@ -235,11 +251,14 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
     sideARerollCount: rerollCount,
     sideBRerollCount: rerollCount,
     isRanked,
+    tournamentFixtureId: tournamentFixture?.id,
   });
 
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="payload" value={payload} />
+
+      {tournamentFixture ? <Card className="border-primary/20 bg-primary/5"><CardContent className="p-5"><p className="text-xs font-black tracking-[0.18em] text-primary">TRẬN THUỘC GIẢI ĐẤU</p><p className="mt-2 font-black">{tournamentFixture.homeName} <span className="text-muted-foreground">vs</span> {tournamentFixture.awayName}</p><p className="mt-1 text-sm text-muted-foreground">Tuyển thủ được khóa theo lịch thi đấu. Chỉ cần chọn đội bóng để bắt đầu.</p></CardContent></Card> : null}
 
       <Card className="border-primary/20 bg-card/80">
         <CardHeader>
@@ -257,6 +276,7 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
             <button
               key={value}
               type="button"
+              disabled={Boolean(tournamentFixture)}
               onClick={() => selectMode(value)}
               className={`rounded-2xl border p-4 text-left transition ${mode === value ? "border-primary bg-primary/10 shadow-[0_0_24px_rgba(106,255,148,0.12)]" : "border-white/10 bg-background/40 hover:border-white/25"}`}
             >
@@ -269,7 +289,7 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 bg-card/80">
+      {!tournamentFixture ? <Card className="border-white/10 bg-card/80">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Swords className="size-5 text-primary" /> Cách tạo kèo
@@ -295,7 +315,7 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
             </button>
           ))}
         </CardContent>
-      </Card>
+      </Card> : null}
 
       <Card className="border-white/10 bg-card/80">
         <CardHeader className="flex-row items-center justify-between gap-3">
@@ -306,7 +326,7 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
             type="button"
             variant="outline"
             onClick={randomPlayers}
-            disabled={setup.players.length < requiredPlayers}
+            disabled={Boolean(tournamentFixture) || setup.players.length < requiredPlayers}
           >
             <Dices className="size-4" /> Chọn ngẫu nhiên
           </Button>
@@ -330,6 +350,7 @@ export function MatchBuilder({ setup }: { setup: MatchSetupDto }) {
                     key={player.id}
                     type="button"
                     onClick={() => togglePlayer(player.id)}
+                    disabled={Boolean(tournamentFixture)}
                     className={`flex min-h-12 items-center justify-between rounded-xl border px-4 text-left transition ${selected ? "border-primary bg-primary/10" : "border-white/10 bg-background/40 hover:border-white/25"}`}
                   >
                     <span className="font-bold">{player.name}</span>

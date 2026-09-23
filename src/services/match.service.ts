@@ -11,6 +11,7 @@ import {
   listActiveMatchRecords,
   listMatchHistoryRecords,
 } from "@/repositories/match.repository";
+import { getTournamentFixtureForMatchStart } from "@/repositories/tournament.repository";
 
 import { matchCompositionSchema } from "./match-composition";
 
@@ -23,6 +24,7 @@ export const startMatchInputSchema = z.object({
   sideARerollCount: z.coerce.number().int().min(0).max(99).default(0),
   sideBRerollCount: z.coerce.number().int().min(0).max(99).default(0),
   isRanked: z.boolean().default(true),
+  tournamentFixtureId: z.uuid().optional(),
 });
 
 const matchNoteInputSchema = z.object({
@@ -78,6 +80,23 @@ export async function startMatch(input: StartMatchInput) {
     throw new Error("Hai đội cân bằng cần cùng tier hoặc có rating gần nhau.");
   }
 
+  let tournamentId: string | undefined;
+  if (input.tournamentFixtureId) {
+    const fixture = await getTournamentFixtureForMatchStart(input.tournamentFixtureId);
+    if (!fixture || fixture.matchId) {
+      throw new Error("Lịch đấu không tồn tại hoặc đã được bắt đầu.");
+    }
+    const samePlayers = (actual: string[], expected: string[]) =>
+      actual.length === expected.length && actual.every((id) => expected.includes(id));
+    if (
+      !samePlayers(input.composition.sideAPlayerIds, fixture.homePlayerIds) ||
+      !samePlayers(input.composition.sideBPlayerIds, fixture.awayPlayerIds)
+    ) {
+      throw new Error("Tuyển thủ của trận phải đúng theo lịch thi đấu.");
+    }
+    tournamentId = fixture.tournamentId;
+  }
+
   return createPlayingMatchRecord({
     matchMode: input.composition.matchMode,
     teamPoolId: input.teamPoolId,
@@ -89,6 +108,8 @@ export async function startMatch(input: StartMatchInput) {
     sideBTeamId: input.sideBTeamId,
     sideARerollCount: input.sideARerollCount,
     sideBRerollCount: input.sideBRerollCount,
+    tournamentId,
+    tournamentFixtureId: input.tournamentFixtureId,
   });
 }
 
