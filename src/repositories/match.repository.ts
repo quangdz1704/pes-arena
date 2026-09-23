@@ -353,7 +353,10 @@ export async function finishMatchRecord(
       returning id
     ), scored_sides as (
       update match_sides
-      set score = case when side = 'A'::match_side then ${sideAScore} else ${sideBScore} end
+      set score = case
+        when side = 'A'::match_side then ${sideAScore}::integer
+        else ${sideBScore}::integer
+      end
       where match_id in (select id from finished_match)
     ), inserted_notes as (
       insert into match_notes (match_id, player_id, content)
