@@ -1,4 +1,5 @@
 import {
+  foreignKey,
   index,
   integer,
   pgTable,
@@ -9,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { players } from "./core";
+import { matches } from "./matches";
 import {
   matchModeEnum,
   tournamentStatusEnum,
@@ -80,5 +82,46 @@ export const tournamentCompetitorPlayers = pgTable(
       table.position,
     ),
     index("tournament_competitor_players_player_idx").on(table.playerId),
+  ],
+);
+
+export const tournamentFixtures = pgTable(
+  "tournament_fixtures",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tournamentId: uuid("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    round: integer("round").notNull(),
+    homeCompetitorId: uuid("home_competitor_id").notNull(),
+    awayCompetitorId: uuid("away_competitor_id").notNull(),
+    matchId: uuid("match_id").references(() => matches.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: "tournament_fixtures_home_competitor_fk",
+      columns: [table.homeCompetitorId],
+      foreignColumns: [tournamentCompetitors.id],
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "tournament_fixtures_away_competitor_fk",
+      columns: [table.awayCompetitorId],
+      foreignColumns: [tournamentCompetitors.id],
+    }).onDelete("cascade"),
+    unique("tournament_fixtures_round_pair_unique").on(
+      table.tournamentId,
+      table.round,
+      table.homeCompetitorId,
+      table.awayCompetitorId,
+    ),
+    index("tournament_fixtures_tournament_round_idx").on(
+      table.tournamentId,
+      table.round,
+    ),
   ],
 );
