@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { initialActionState } from "@/lib/action-state";
 import type { MatchDetailDto, MatchSideDto } from "@/repositories/match.repository";
 
@@ -34,6 +35,9 @@ export function MatchScoreboard({ match }: { match: MatchDetailDto }) {
   const router = useRouter();
   const [sideAScore, setSideAScore] = useState(match.sides[0].score ?? 0);
   const [sideBScore, setSideBScore] = useState(match.sides[1].score ?? 0);
+  const [notes, setNotes] = useState<Record<string, string>>(
+    Object.fromEntries(match.notes.map((note) => [note.playerId, note.content])),
+  );
   const [state, action] = useActionState(saveMatchScoreAction, initialActionState);
   const finished = match.status === "FINISHED";
 
@@ -50,6 +54,7 @@ export function MatchScoreboard({ match }: { match: MatchDetailDto }) {
       <Card className="border-primary/20 bg-card/80"><CardContent className="space-y-6 py-8 text-center">
         <p className="text-sm font-black tracking-[0.2em] text-primary">KẾT QUẢ CHUNG CUỘC</p>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3"><SideIdentity side={match.sides[0]} /><p className="text-5xl font-black tabular-nums sm:text-7xl">{match.sides[0].score} <span className="text-muted-foreground">-</span> {match.sides[1].score}</p><SideIdentity side={match.sides[1]} /></div>
+        {match.notes.length > 0 ? <div className="rounded-xl border border-white/10 bg-background/40 p-4 text-left"><p className="text-xs font-black tracking-[0.16em] text-primary">CẢM NHẬN SAU TRẬN</p><div className="mt-3 space-y-2 text-sm">{match.notes.map((note) => <p key={note.playerId}><span className="font-bold">{match.sides.flatMap((side) => side.players).find((player) => player.id === note.playerId)?.name}:</span> <span className="text-muted-foreground">{note.content}</span></p>)}</div></div> : null}
         <Button asChild variant="outline"><Link href="/history">Xem lịch sử trận đấu</Link></Button>
       </CardContent></Card>
     );
@@ -60,6 +65,15 @@ export function MatchScoreboard({ match }: { match: MatchDetailDto }) {
       <input type="hidden" name="matchId" value={match.id} />
       <input type="hidden" name="sideAScore" value={sideAScore} />
       <input type="hidden" name="sideBScore" value={sideBScore} />
+      <input
+        type="hidden"
+        name="notes"
+        value={JSON.stringify(
+          Object.entries(notes)
+            .map(([playerId, content]) => ({ playerId, content: content.trim() }))
+            .filter((note) => note.content.length > 0),
+        )}
+      />
       <Card className="border-primary/20 bg-card/80"><CardContent className="space-y-7 py-7">
         <p className="text-center text-sm font-black tracking-[0.2em] text-primary">NHẬP TỈ SỐ</p>
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-5">
@@ -67,6 +81,10 @@ export function MatchScoreboard({ match }: { match: MatchDetailDto }) {
           <p className="text-xl font-black text-primary sm:text-3xl">VS</p>
           <ScoreControl label="Side B" score={sideBScore} setScore={setSideBScore} identity={<SideIdentity side={match.sides[1]} />} />
         </div>
+      </CardContent></Card>
+      <Card className="border-white/10 bg-card/80"><CardContent className="space-y-4 py-6">
+        <div><p className="font-black">Cảm nhận sau trận <span className="text-muted-foreground">(không bắt buộc)</span></p><p className="mt-1 text-sm text-muted-foreground">Mỗi tuyển thủ có thể để lại một câu. Ghi chú sẽ được gửi kèm Discord.</p></div>
+        <div className="grid gap-3 sm:grid-cols-2">{match.sides.flatMap((side) => side.players).map((player) => <label key={player.id} className="space-y-2"><span className="text-sm font-bold">{player.name}</span><Textarea value={notes[player.id] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [player.id]: event.target.value }))} maxLength={500} placeholder="Còn gì để nói không?" className="min-h-24 resize-none" /></label>)}</div>
       </CardContent></Card>
       {state.status === "error" ? <p className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">{state.message}</p> : null}
       <SaveButton />

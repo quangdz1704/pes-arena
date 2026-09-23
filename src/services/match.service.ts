@@ -2,6 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { sendMatchResultToDiscord } from "@/lib/discord/match-result";
 import {
   createPlayingMatchRecord,
   finishMatchRecord,
@@ -24,10 +25,20 @@ export const startMatchInputSchema = z.object({
   isRanked: z.boolean().default(true),
 });
 
+const matchNoteInputSchema = z.object({
+  playerId: z.uuid(),
+  content: z.string().trim().min(1).max(500),
+});
+
 export const finishMatchInputSchema = z.object({
   matchId: z.uuid(),
   sideAScore: z.coerce.number().int().min(0).max(99),
   sideBScore: z.coerce.number().int().min(0).max(99),
+  notes: z.array(matchNoteInputSchema).max(4),
+}).superRefine((value, context) => {
+  if (new Set(value.notes.map((note) => note.playerId)).size !== value.notes.length) {
+    context.addIssue({ code: "custom", path: ["notes"], message: "Mỗi người chỉ có một ghi chú." });
+  }
 });
 
 export type StartMatchInput = z.infer<typeof startMatchInputSchema>;
@@ -94,5 +105,22 @@ export async function listMatchHistory() {
 }
 
 export async function finishMatch(input: z.infer<typeof finishMatchInputSchema>) {
-  return finishMatchRecord(input.matchId, input.sideAScore, input.sideBScore);
+  const currentMatch = await getMatchRecord(input.matchId);
+  if (!currentMatch || currentMatch.status !== "PLAYING") {
+    throw new Error("Trận đấu không tồn tại hoặc đã được lưu kết quả.");
+  }
+
+  const participantIds = new Set(
+    currentMatch.sides.flatMap((side) => side.players.map((player) => player.id)),
+  );
+  if (!input.notes.every((note) => participantIds.has(note.playerId))) {
+    throw new Error("Ghi chú chỉ dành cho người đã tham gia trận đấu.");
+  }
+
+  await finishMatchRecord(input.matchId, input.sideAScore, input.sideBScore, input.notes);
+  const finishedMatch = await getMatchRecord(input.matchId);
+  if (!finishedMatch) throw new Error("Không thể tải lại kết quả trận đấu.");
+
+  const discordStatus = await sendMatchResultToDiscord(finishedMatch);
+  return { match: finishedMatch, discordStatus };
 }

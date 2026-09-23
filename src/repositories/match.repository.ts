@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import {
   matchSidePlayers,
   matchSides,
+  matchNotes,
   matches,
   players,
   teamPoolMembers,
@@ -52,6 +53,11 @@ export type MatchSideDto = {
   players: MatchPlayerDto[];
 };
 
+export type MatchNoteDto = {
+  playerId: string;
+  content: string;
+};
+
 export type MatchDetailDto = {
   id: string;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
@@ -61,6 +67,7 @@ export type MatchDetailDto = {
   playedAt: string | null;
   createdAt: string;
   sides: [MatchSideDto, MatchSideDto];
+  notes: MatchNoteDto[];
 };
 
 type CreateMatchValues = {
@@ -232,9 +239,33 @@ async function getSidesForMatches(matchIds: string[]) {
   return sidesByMatch;
 }
 
+async function getNotesForMatches(matchIds: string[]) {
+  if (matchIds.length === 0) return new Map<string, MatchNoteDto[]>();
+
+  const noteRows = await getDb()
+    .select({
+      matchId: matchNotes.matchId,
+      playerId: matchNotes.playerId,
+      content: matchNotes.content,
+    })
+    .from(matchNotes)
+    .where(inArray(matchNotes.matchId, matchIds))
+    .orderBy(asc(matchNotes.createdAt));
+  const notesByMatch = new Map<string, MatchNoteDto[]>();
+
+  for (const note of noteRows) {
+    const notes = notesByMatch.get(note.matchId) ?? [];
+    notes.push({ playerId: note.playerId, content: note.content });
+    notesByMatch.set(note.matchId, notes);
+  }
+
+  return notesByMatch;
+}
+
 function toMatchDetail(
   match: typeof matches.$inferSelect,
   sides: MatchSideDto[],
+  notes: MatchNoteDto[],
 ): MatchDetailDto | null {
   if (sides.length !== 2) return null;
 
@@ -247,6 +278,7 @@ function toMatchDetail(
     playedAt: match.playedAt?.toISOString() ?? null,
     createdAt: match.createdAt.toISOString(),
     sides: [sides[0]!, sides[1]!],
+    notes,
   };
 }
 
@@ -254,8 +286,11 @@ export async function getMatchRecord(id: string) {
   const [match] = await getDb().select().from(matches).where(eq(matches.id, id));
   if (!match) return null;
 
-  const sidesByMatch = await getSidesForMatches([id]);
-  return toMatchDetail(match, sidesByMatch.get(id) ?? []);
+  const [sidesByMatch, notesByMatch] = await Promise.all([
+    getSidesForMatches([id]),
+    getNotesForMatches([id]),
+  ]);
+  return toMatchDetail(match, sidesByMatch.get(id) ?? [], notesByMatch.get(id) ?? []);
 }
 
 export async function getActiveMatchRecord() {
@@ -267,8 +302,15 @@ export async function getActiveMatchRecord() {
     .limit(1);
   if (!match) return null;
 
-  const sidesByMatch = await getSidesForMatches([match.id]);
-  return toMatchDetail(match, sidesByMatch.get(match.id) ?? []);
+  const [sidesByMatch, notesByMatch] = await Promise.all([
+    getSidesForMatches([match.id]),
+    getNotesForMatches([match.id]),
+  ]);
+  return toMatchDetail(
+    match,
+    sidesByMatch.get(match.id) ?? [],
+    notesByMatch.get(match.id) ?? [],
+  );
 }
 
 export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDto[]> {
@@ -278,15 +320,31 @@ export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDt
     .where(eq(matches.status, "FINISHED"))
     .orderBy(desc(matches.playedAt), desc(matches.createdAt))
     .limit(limit);
-  const sidesByMatch = await getSidesForMatches(matchRows.map((match) => match.id));
+  const matchIds = matchRows.map((match) => match.id);
+  const [sidesByMatch, notesByMatch] = await Promise.all([
+    getSidesForMatches(matchIds),
+    getNotesForMatches(matchIds),
+  ]);
 
   return matchRows.flatMap((match) => {
-    const detail = toMatchDetail(match, sidesByMatch.get(match.id) ?? []);
+    const detail = toMatchDetail(
+      match,
+      sidesByMatch.get(match.id) ?? [],
+      notesByMatch.get(match.id) ?? [],
+    );
     return detail ? [detail] : [];
   });
 }
 
-export async function finishMatchRecord(id: string, sideAScore: number, sideBScore: number) {
+export async function finishMatchRecord(
+  id: string,
+  sideAScore: number,
+  sideBScore: number,
+  notes: MatchNoteDto[],
+) {
+  const notesJson = JSON.stringify(
+    notes.map((note) => ({ player_id: note.playerId, content: note.content })),
+  );
   const result = await getDb().execute(sql`
     with finished_match as (
       update matches
@@ -297,6 +355,11 @@ export async function finishMatchRecord(id: string, sideAScore: number, sideBSco
       update match_sides
       set score = case when side = 'A'::match_side then ${sideAScore} else ${sideBScore} end
       where match_id in (select id from finished_match)
+    ), inserted_notes as (
+      insert into match_notes (match_id, player_id, content)
+      select ${id}, note.player_id::uuid, note.content
+      from jsonb_to_recordset(${notesJson}::jsonb) as note(player_id text, content text)
+      where exists (select 1 from finished_match)
     )
     select id from finished_match
   `);

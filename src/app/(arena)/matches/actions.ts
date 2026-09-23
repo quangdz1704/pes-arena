@@ -40,13 +40,19 @@ export async function saveMatchScoreAction(
       matchId: formData.get("matchId"),
       sideAScore: formData.get("sideAScore"),
       sideBScore: formData.get("sideBScore"),
+      notes: JSON.parse(String(formData.get("notes") ?? "[]")) as unknown,
     });
-    await finishMatch(input);
+    const result = await finishMatch(input);
 
     revalidatePath("/");
     revalidatePath("/history");
     revalidatePath(`/matches/${input.matchId}`);
-    return { status: "success", message: "Đã lưu kết quả trận đấu." };
+    const messageByDiscordStatus = {
+      sent: "Đã lưu kết quả và gửi Discord.",
+      not_configured: "Đã lưu kết quả. Discord chưa được cấu hình.",
+      failed: "Đã lưu kết quả nhưng gửi Discord thất bại.",
+    } as const;
+    return { status: "success", message: messageByDiscordStatus[result.discordStatus] };
   } catch (error) {
     return toActionError(error);
   }

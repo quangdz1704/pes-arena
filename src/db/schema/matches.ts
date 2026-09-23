@@ -6,6 +6,7 @@ import {
   index,
   integer,
   pgTable,
+  text,
   timestamp,
   unique,
   uuid,
@@ -116,5 +117,26 @@ export const matchSidePlayers = pgTable(
       "match_side_players_position_positive_check",
       sql`${table.position} > 0`,
     ),
+  ],
+);
+
+export const matchNotes = pgTable(
+  "match_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    playerId: uuid("player_id")
+      .notNull()
+      .references(() => players.id, { onDelete: "restrict" }),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique("match_notes_match_player_unique").on(table.matchId, table.playerId),
+    index("match_notes_match_idx").on(table.matchId),
   ],
 );
