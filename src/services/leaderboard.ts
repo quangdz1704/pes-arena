@@ -1,4 +1,4 @@
-export type LeaderboardPeriod = "ALL" | "WEEK" | "MONTH";
+export type LeaderboardPeriod = "ALL" | "DAY" | "SEVEN_DAYS" | "THIRTY_DAYS";
 export type LeaderboardMatchMode = "ALL" | "ONE_V_ONE" | "TWO_V_TWO";
 export type LeaderboardSort = "WINS" | "WINRATE" | "MATCHES" | "GF";
 
@@ -47,11 +47,8 @@ export function getLeaderboardStartDate(period: LeaderboardPeriod, now = new Dat
   const month = vietnamNow.getUTCMonth();
   const day = vietnamNow.getUTCDate();
 
-  if (period === "MONTH") return startOfVietnamDayUtc(year, month, 1);
-
-  const dayOfWeek = vietnamNow.getUTCDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  return startOfVietnamDayUtc(year, month, day - daysSinceMonday);
+  const daysToInclude = period === "DAY" ? 1 : period === "SEVEN_DAYS" ? 7 : 30;
+  return startOfVietnamDayUtc(year, month, day - (daysToInclude - 1));
 }
 
 type MutableEntry = Omit<LeaderboardEntry, "rank" | "winRate" | "goalDifference">;

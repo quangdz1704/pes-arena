@@ -25,8 +25,9 @@ export const dynamic = "force-dynamic";
 
 const periods = [
   ["ALL", "Tất cả"],
-  ["WEEK", "Tuần này"],
-  ["MONTH", "Tháng này"],
+  ["DAY", "1 ngày"],
+  ["SEVEN_DAYS", "7 ngày"],
+  ["THIRTY_DAYS", "30 ngày"],
 ] as const satisfies readonly [LeaderboardPeriod, string][];
 
 const modes = [

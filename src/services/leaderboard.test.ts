@@ -18,7 +18,8 @@ describe("leaderboard", () => {
     expect(entries.find((entry) => entry.playerId === "c")).toMatchObject({ losses: 1, goalsFor: 2, goalsAgainst: 4, currentStreak: 0 });
   });
 
-  it("uses Monday 00:00 in Asia/Ho_Chi_Minh as the weekly boundary", () => {
-    expect(getLeaderboardStartDate("WEEK", new Date("2026-09-20T18:00:00Z"))?.toISOString()).toBe("2026-09-20T17:00:00.000Z");
+  it("uses the start of the Vietnam day for rolling day filters", () => {
+    expect(getLeaderboardStartDate("DAY", new Date("2026-09-20T18:00:00Z"))?.toISOString()).toBe("2026-09-20T17:00:00.000Z");
+    expect(getLeaderboardStartDate("SEVEN_DAYS", new Date("2026-09-20T18:00:00Z"))?.toISOString()).toBe("2026-09-14T17:00:00.000Z");
   });
 });
