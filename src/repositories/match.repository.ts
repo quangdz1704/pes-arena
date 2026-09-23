@@ -73,7 +73,7 @@ export type MatchDetailDto = {
 type CreateMatchValues = {
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
   teamPoolId: string;
-  randomMode: "PURE" | "BALANCED";
+  randomMode: "PURE" | "BALANCED" | null;
   isRanked: boolean;
   sideAPlayerIds: string[];
   sideBPlayerIds: string[];

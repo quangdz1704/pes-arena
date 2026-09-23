@@ -17,7 +17,7 @@ import { matchCompositionSchema } from "./match-composition";
 export const startMatchInputSchema = z.object({
   composition: matchCompositionSchema,
   teamPoolId: z.uuid(),
-  randomMode: z.enum(["PURE", "BALANCED"]),
+  randomMode: z.enum(["PURE", "BALANCED"]).nullable(),
   sideATeamId: z.uuid(),
   sideBTeamId: z.uuid(),
   sideARerollCount: z.coerce.number().int().min(0).max(99).default(0),
