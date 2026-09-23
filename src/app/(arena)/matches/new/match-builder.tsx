@@ -75,6 +75,7 @@ type TournamentFixtureStart = {
   awayPlayerIds: string[];
   homeName: string;
   awayName: string;
+  matchMode: "ONE_V_ONE" | "TWO_V_TWO" | undefined;
 };
 
 export function MatchBuilder({
@@ -85,7 +86,7 @@ export function MatchBuilder({
   tournamentFixture: TournamentFixtureStart | null;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<MatchMode>("ONE_V_ONE");
+  const [mode, setMode] = useState<MatchMode>(tournamentFixture?.matchMode ?? "ONE_V_ONE");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => tournamentFixture ? [...tournamentFixture.homePlayerIds, ...tournamentFixture.awayPlayerIds] : []);
   const [sideAPlayerIds, setSideAPlayerIds] = useState<string[]>(() => tournamentFixture?.homePlayerIds ?? []);
   const [sideBPlayerIds, setSideBPlayerIds] = useState<string[]>(() => tournamentFixture?.awayPlayerIds ?? []);

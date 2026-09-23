@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
 import { listPlayers } from "@/services/player.service";
 import { listTournaments } from "@/services/tournament.service";
-import { createLeagueAction } from "./actions";
+import { LeagueForm } from "./league-form";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,28 @@ export default async function TournamentsPage() {
   const [players, tournaments] = ready
     ? await Promise.all([listPlayers(), listTournaments()])
     : [[], []];
+  const activeTournaments = tournaments.filter((tournament) => tournament.status === "ACTIVE");
+  const tournamentHistory = tournaments.filter((tournament) => tournament.status !== "ACTIVE");
+
+  const tournamentCards = (items: typeof tournaments) => (
+    <div className="space-y-3">
+      {items.map((tournament) => (
+        <Link className="block" href={`/tournaments/${tournament.id}`} key={tournament.id}>
+          <Card className="transition-colors hover:border-primary">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="font-black">{tournament.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {tournament.competitors.length} đối thủ · {tournament.fixtures.length} trận · {tournament.status}
+                </p>
+              </div>
+              <span className="text-sm font-bold text-primary">Xem chi tiết →</span>
+            </CardContent>
+          </Card>
+        </Link>
+      ))}
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-7">
@@ -26,45 +48,11 @@ export default async function TournamentsPage() {
         <>
           <Card>
             <CardContent className="p-5">
-              <form
-                action={async (formData) => {
-                  "use server";
-                  await createLeagueAction({ status: "idle" }, formData);
-                }}
-                className="space-y-4"
-              >
-                <input className="h-10 w-full rounded border bg-background px-3" name="name" placeholder="Tên giải đấu" required />
-                <div className="grid gap-2 sm:grid-cols-3">
-                  {players.filter((player) => player.isActive).map((player) => (
-                    <label className="flex gap-2 rounded border p-3" key={player.id}>
-                      <input name="playerIds" type="checkbox" value={player.id} />
-                      {player.name}
-                    </label>
-                  ))}
-                </div>
-                <button className="rounded bg-primary px-4 py-2 font-bold text-primary-foreground" type="submit">
-                  Tạo League 1v1 & sinh lịch
-                </button>
-              </form>
+              <LeagueForm players={players.filter((player) => player.isActive).map((player) => ({ id: player.id, name: player.name }))} />
             </CardContent>
           </Card>
-          <div className="space-y-3">
-            {tournaments.map((tournament) => (
-              <Link className="block" href={`/tournaments/${tournament.id}`} key={tournament.id}>
-                <Card className="transition-colors hover:border-primary">
-                  <CardContent className="flex items-center justify-between p-5">
-                    <div>
-                      <p className="font-black">{tournament.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {tournament.competitors.length} đối thủ · {tournament.fixtures.length} trận · {tournament.status}
-                      </p>
-                    </div>
-                    <span className="text-sm font-bold text-primary">Xem chi tiết →</span>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          <section className="space-y-3"><h2 className="text-xl font-black">Giải đang diễn ra</h2>{activeTournaments.length ? tournamentCards(activeTournaments) : <p className="text-sm text-muted-foreground">Chưa có giải nào đang diễn ra.</p>}</section>
+          {tournamentHistory.length ? <section className="space-y-3"><h2 className="text-xl font-black">Lịch sử giải</h2>{tournamentCards(tournamentHistory)}</section> : null}
         </>
       ) : (
         <Card><CardContent className="p-6">Cần kết nối database.</CardContent></Card>

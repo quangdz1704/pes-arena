@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import { getDb } from "@/db";
@@ -16,17 +16,37 @@ import {
 
 import { generateRoundRobin } from "@/services/round-robin";
 
-export async function createLeagueRecord(input: { name: string; playerIds: string[] }) {
+export async function createLeagueRecord(input: {
+  name: string;
+  matchMode: "ONE_V_ONE" | "TWO_V_TWO";
+  competitorPlayerIds: string[][];
+}) {
   const tournamentId = randomUUID();
-  const competitors = input.playerIds.map((playerId) => ({ id: randomUUID(), playerId }));
+  const competitors = input.competitorPlayerIds.map((playerIds) => ({ id: randomUUID(), playerIds }));
   const fixtures = generateRoundRobin(competitors);
   await getDb().batch([
-    getDb().insert(tournaments).values({ id: tournamentId, name: input.name, type: "LEAGUE", matchMode: "ONE_V_ONE", status: "ACTIVE" }),
+    getDb().insert(tournaments).values({ id: tournamentId, name: input.name, type: "LEAGUE", matchMode: input.matchMode, status: "ACTIVE" }),
     getDb().insert(tournamentCompetitors).values(competitors.map((competitor, index) => ({ id: competitor.id, tournamentId, displayName: `Competitor ${index + 1}`, seed: index + 1 }))),
-    getDb().insert(tournamentCompetitorPlayers).values(competitors.map((competitor) => ({ competitorId: competitor.id, playerId: competitor.playerId, position: 1 }))),
+    getDb().insert(tournamentCompetitorPlayers).values(competitors.flatMap((competitor) => competitor.playerIds.map((playerId, index) => ({ competitorId: competitor.id, playerId, position: index + 1 })))),
     getDb().insert(tournamentFixtures).values(fixtures.map((fixture) => ({ tournamentId, round: fixture.round, homeCompetitorId: fixture.home.id, awayCompetitorId: fixture.away.id }))),
   ]);
   return tournamentId;
+}
+
+export async function finishTournamentIfComplete(tournamentId: string) {
+  await getDb().execute(sql`
+    update tournaments
+    set status = 'FINISHED'::tournament_status, updated_at = now()
+    where id = ${tournamentId}::uuid
+      and status = 'ACTIVE'::tournament_status
+      and not exists (
+        select 1
+        from tournament_fixtures fixture
+        left join matches match on match.id = fixture.match_id
+        where fixture.tournament_id = ${tournamentId}::uuid
+          and (match.status is distinct from 'FINISHED'::match_status)
+      )
+  `);
 }
 
 export async function listTournamentRecords() {
@@ -126,6 +146,11 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
     .from(tournamentFixtures)
     .where(eq(tournamentFixtures.id, fixtureId));
   if (!fixture) return null;
+  const [tournament] = await db
+    .select({ matchMode: tournaments.matchMode })
+    .from(tournaments)
+    .where(eq(tournaments.id, fixture.tournamentId));
+  if (!tournament) return null;
 
   const competitorPlayers = await db
     .select({
@@ -144,6 +169,7 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
   return {
     id: fixture.id,
     tournamentId: fixture.tournamentId,
+    matchMode: tournament.matchMode,
     matchId: fixture.matchId,
     homePlayerIds: homePlayers.map((player) => player.playerId),
     awayPlayerIds: awayPlayers.map((player) => player.playerId),

@@ -11,7 +11,10 @@ import {
   listActiveMatchRecords,
   listMatchHistoryRecords,
 } from "@/repositories/match.repository";
-import { getTournamentFixtureForMatchStart } from "@/repositories/tournament.repository";
+import {
+  finishTournamentIfComplete,
+  getTournamentFixtureForMatchStart,
+} from "@/repositories/tournament.repository";
 
 import { matchCompositionSchema } from "./match-composition";
 
@@ -86,6 +89,9 @@ export async function startMatch(input: StartMatchInput) {
     if (!fixture || fixture.matchId) {
       throw new Error("Lịch đấu không tồn tại hoặc đã được bắt đầu.");
     }
+    if (input.composition.matchMode !== fixture.matchMode) {
+      throw new Error("Chế độ trận không khớp với giải đấu.");
+    }
     const samePlayers = (actual: string[], expected: string[]) =>
       actual.length === expected.length && actual.every((id) => expected.includes(id));
     if (
@@ -139,6 +145,7 @@ export async function finishMatch(input: z.infer<typeof finishMatchInputSchema>)
   }
 
   await finishMatchRecord(input.matchId, input.sideAScore, input.sideBScore, input.notes);
+  if (currentMatch.tournamentId) await finishTournamentIfComplete(currentMatch.tournamentId);
   const finishedMatch = await getMatchRecord(input.matchId);
   if (!finishedMatch) throw new Error("Không thể tải lại kết quả trận đấu.");
 
