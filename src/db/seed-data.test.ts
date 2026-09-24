@@ -21,6 +21,10 @@ describe("team seed data", () => {
     );
   });
 
+  it("includes a logo for every default team", () => {
+    expect(teamSeeds.every((team) => Boolean(team.logoUrl))).toBe(true);
+  });
+
   it("keeps club and national pool types consistent", () => {
     expect([...topClubSeeds, ...midClubSeeds].every((team) => team.type === "CLUB"))
       .toBe(true);

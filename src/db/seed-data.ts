@@ -1,6 +1,7 @@
 export type TeamSeed = {
   name: string;
   shortName: string;
+  logoUrl?: string | null;
   type: "CLUB" | "NATIONAL";
   tier: "S" | "A" | "B" | "C";
   country: string;
@@ -111,11 +112,91 @@ export const nationalTeamSeeds: TeamSeed[] = [
   rating: rating as number,
 }));
 
+const defaultTeamLogoUrls: Record<string, string> = {
+  "Real Madrid": "https://assets.football-logos.cc/logos/spain/256x256/real-madrid.5ce15611.png",
+  Barcelona: "https://assets.football-logos.cc/logos/spain/256x256/barcelona.481f5fb3.png",
+  "Manchester City": "https://assets.football-logos.cc/logos/england/256x256/manchester-city.62f9d1f2.png",
+  Liverpool: "https://assets.football-logos.cc/logos/england/256x256/liverpool.99c48ae3.png",
+  Arsenal: "https://assets.football-logos.cc/logos/england/256x256/arsenal.e5528ede.png",
+  "Manchester United": "https://assets.football-logos.cc/logos/england/256x256/manchester-united.7ab9d343.png",
+  Chelsea: "https://assets.football-logos.cc/logos/england/256x256/chelsea.ede8a2a7.png",
+  "Paris Saint-Germain": "https://assets.football-logos.cc/logos/france/256x256/paris-saint-germain.7d591ccb.png",
+  "Bayern Munich": "https://assets.football-logos.cc/logos/germany/256x256/bayern-munchen.6c38f13a.png",
+  "Inter Milan": "https://assets.football-logos.cc/logos/italy/256x256/inter.3a7ce90c.png",
+  "AC Milan": "https://assets.football-logos.cc/logos/italy/256x256/milan.75d56f90.png",
+  Juventus: "https://assets.football-logos.cc/logos/italy/256x256/juventus.a8baf848.png",
+  "Atletico Madrid": "https://assets.football-logos.cc/logos/spain/256x256/atletico-madrid.ba72e2cf.png",
+  "Borussia Dortmund": "https://assets.football-logos.cc/logos/germany/256x256/borussia-dortmund.09ffedcd.png",
+  "Bayer Leverkusen": "https://assets.football-logos.cc/logos/germany/256x256/bayer-leverkusen.72f211d8.png",
+  Napoli: "https://assets.football-logos.cc/logos/italy/256x256/napoli.ee47a50b.png",
+  Roma: "https://assets.football-logos.cc/logos/italy/256x256/roma.034a933e.png",
+  "Tottenham Hotspur": "https://assets.football-logos.cc/logos/england/256x256/tottenham.f192bf50.png",
+  "Newcastle United": "https://assets.football-logos.cc/logos/england/256x256/newcastle.53b65b3d.png",
+  "Aston Villa": "https://assets.football-logos.cc/logos/england/256x256/aston-villa.07a2646c.png",
+  "RB Leipzig": "https://assets.football-logos.cc/logos/germany/256x256/rb-leipzig.9d65faeb.png",
+  Benfica: "https://assets.football-logos.cc/logos/portugal/256x256/benfica.3e4d3034.png",
+  Porto: "https://assets.football-logos.cc/logos/portugal/256x256/fc-porto.b58f31f6.png",
+  "Sporting CP": "https://assets.football-logos.cc/logos/portugal/256x256/sporting-cp.8b32e971.png",
+  Ajax: "https://assets.football-logos.cc/logos/netherlands/256x256/ajax.fadc62c4.png",
+  "PSV Eindhoven": "https://assets.football-logos.cc/logos/netherlands/256x256/psv.b5ebd0db.png",
+  Feyenoord: "https://assets.football-logos.cc/logos/netherlands/256x256/feyenoord.06e393bc.png",
+  Galatasaray: "https://assets.football-logos.cc/logos/turkey/256x256/galatasaray.b788795f.png",
+  Fenerbahce: "https://assets.football-logos.cc/logos/turkey/256x256/fenerbahce.2a1e22fd.png",
+  "Al Hilal": "https://assets.football-logos.cc/logos/saudi-arabia/256x256/al-hilal.fc7a4d70.png",
+  Brighton: "https://assets.football-logos.cc/logos/england/256x256/brighton.5da206a0.png",
+  "West Ham United": "https://assets.football-logos.cc/logos/england/256x256/west-ham.c86eebf5.png",
+  Everton: "https://assets.football-logos.cc/logos/england/256x256/everton.6b635cd7.png",
+  "Crystal Palace": "https://assets.football-logos.cc/logos/england/256x256/crystal-palace.53067b96.png",
+  Fulham: "https://assets.football-logos.cc/logos/england/256x256/fulham.4c7ce48b.png",
+  Wolverhampton: "https://assets.football-logos.cc/logos/england/256x256/wolves.2c773758.png",
+  Fiorentina: "https://assets.football-logos.cc/logos/italy/256x256/fiorentina.7ba101c2.png",
+  Lazio: "https://assets.football-logos.cc/logos/italy/256x256/lazio.2386d28d.png",
+  Atalanta: "https://assets.football-logos.cc/logos/italy/256x256/atalanta.45225436.png",
+  Bologna: "https://assets.football-logos.cc/logos/italy/256x256/bologna.a78d435f.png",
+  Torino: "https://assets.football-logos.cc/logos/italy/256x256/torino.a6c78dd6.png",
+  "Real Sociedad": "https://assets.football-logos.cc/logos/spain/256x256/real-sociedad.501e3b1e.png",
+  "Real Betis": "https://assets.football-logos.cc/logos/spain/256x256/real-betis.96fdee2c.png",
+  Villarreal: "https://assets.football-logos.cc/logos/spain/256x256/villarreal.b0313369.png",
+  Sevilla: "https://assets.football-logos.cc/logos/spain/256x256/sevilla.b741a6ce.png",
+  "Athletic Bilbao": "https://assets.football-logos.cc/logos/spain/256x256/athletic-club.e1bfba0c.png",
+  Monaco: "https://assets.football-logos.cc/logos/france/256x256/as-monaco.51dd5065.png",
+  Marseille: "https://assets.football-logos.cc/logos/france/256x256/marseille.92b6437c.png",
+  Lyon: "https://assets.football-logos.cc/logos/france/256x256/lyon.b44ff7aa.png",
+  Lille: "https://assets.football-logos.cc/logos/france/256x256/lille.451f5326.png",
+  Argentina: "https://assets.football-logos.cc/logos/argentina/256x256/argentina-national-team.7041952f.png",
+  Brazil: "https://assets.football-logos.cc/logos/brazil/256x256/brazil-national-team.fd8ca234.png",
+  France: "https://assets.football-logos.cc/logos/france/256x256/france-national-team.cc82cdbf.png",
+  England: "https://assets.football-logos.cc/logos/england/256x256/england-national-team.1dd4fab6.png",
+  Spain: "https://assets.football-logos.cc/logos/spain/256x256/spain-national-team.a42d399e.png",
+  Germany: "https://assets.football-logos.cc/logos/germany/256x256/germany-national-team.6c5e7edf.png",
+  Portugal: "https://assets.football-logos.cc/logos/portugal/256x256/portuguese-football-federation.c4cbf0cb.png",
+  Netherlands: "https://assets.football-logos.cc/logos/netherlands/256x256/dutch-national-team.3fd62267.png",
+  Italy: "https://assets.football-logos.cc/logos/italy/256x256/italy-national-team.e86a120c.png",
+  Belgium: "https://assets.football-logos.cc/logos/belgium/256x256/belgium-national-team.28a4fd00.png",
+  Uruguay: "https://assets.football-logos.cc/logos/uruguay/256x256/uruguay-national-team.f4de4cd6.png",
+  Croatia: "https://assets.football-logos.cc/logos/croatia/256x256/croatia-national-team.585829ca.png",
+  Denmark: "https://assets.football-logos.cc/logos/denmark/256x256/denmark-national-team.9d5a1b50.png",
+  Switzerland: "https://assets.football-logos.cc/logos/switzerland/256x256/switzerland-national-team.4c74693e.png",
+  Colombia: "https://assets.football-logos.cc/logos/colombia/256x256/colombia-national-team.13fd3fdf.png",
+  Mexico: "https://assets.football-logos.cc/logos/mexico/256x256/mexico-national-team.11d7d44f.png",
+  "United States": "https://assets.football-logos.cc/logos/usa/256x256/usa-national-team.ea8d4ff6.png",
+  Japan: "https://assets.football-logos.cc/logos/japan/256x256/japan-national-team.f37cca5f.png",
+  "South Korea": "https://assets.football-logos.cc/logos/south-korea/256x256/south-korea-national-team.df45204a.png",
+  Morocco: "https://assets.football-logos.cc/logos/morocco/256x256/morocco-national-team.337d4152.png",
+  Senegal: "https://assets.football-logos.cc/logos/senegal/256x256/senegal-national-team.c5a83df2.png",
+  Nigeria: "https://assets.football-logos.cc/logos/nigeria/256x256/nigeria-national-team.c546a290.png",
+  Cameroon: "https://assets.football-logos.cc/logos/cameroon/256x256/cameroon-national-team.4985f1e1.png",
+  Vietnam: "https://assets.football-logos.cc/logos/vietnam/256x256/vietnam-national-team.77182a1e.png",
+};
+
 export const teamSeeds = [
   ...topClubSeeds,
   ...midClubSeeds,
   ...nationalTeamSeeds,
-];
+].map((team) => ({
+  ...team,
+  logoUrl: defaultTeamLogoUrls[team.name] ?? null,
+}));
 
 export const defaultPoolSeeds = [
   {

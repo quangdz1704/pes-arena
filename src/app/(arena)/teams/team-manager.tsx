@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Layers3, Pencil, Plus, Power } from "lucide-react";
 import { toast } from "sonner";
@@ -56,6 +56,34 @@ function SubmitButton({ children }: { children: string }) {
     <Button type="submit" disabled={pending} className="w-full font-bold">
       {pending ? "Đang lưu..." : children}
     </Button>
+  );
+}
+
+function TeamLogo({ team }: { team: TeamDto }) {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  if (!team.logoUrl || hasImageError) {
+    return (
+      <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/5 font-black text-primary">
+        {team.shortName.slice(0, 3)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/5 p-1.5">
+      {/* Team administrators can enter a logo URL from any public host. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={team.logoUrl}
+        alt={`Logo ${team.name}`}
+        width={44}
+        height={44}
+        className="size-full object-contain"
+        loading="lazy"
+        onError={() => setHasImageError(true)}
+      />
+    </div>
   );
 }
 
@@ -274,7 +302,7 @@ export function TeamManager({ teams, pools }: { teams: TeamDto[]; pools: TeamPoo
           {teams.map((team) => (
             <Card key={team.id} className="border-white/8 bg-card/80">
               <CardContent className="flex items-center gap-3 py-4">
-                <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/5 font-black text-primary">{team.shortName.slice(0, 3)}</div>
+                <TeamLogo team={team} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2"><h3 className="truncate font-bold">{team.name}</h3><Badge variant="outline">{team.tier}</Badge></div>
                   <p className="mt-1 text-xs text-muted-foreground">{team.type === "CLUB" ? "CLB" : "Đội tuyển"} · {team.country} · {team.rating}</p>
