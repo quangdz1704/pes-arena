@@ -1,20 +1,36 @@
 import Link from "next/link";
-import { Gamepad2, Play, Shield, Sparkles, Trophy, UserRound } from "lucide-react";
+import { ArrowRight, Gamepad2, Play, Shield, Sparkles, Swords, Trophy, UserRound } from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { isDatabaseConfigured } from "@/db";
 import { getFoundationSummary } from "@/repositories/dashboard.repository";
+import { getLeaderboard } from "@/services/leaderboard.service";
 import { listActiveMatches } from "@/services/match.service";
 
 export const dynamic = "force-dynamic";
 
+function initials(name: string) {
+  return name
+    .split(" ")
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
 export default async function OverviewPage() {
   const databaseReady = isDatabaseConfigured();
-  const [summary, activeMatches] = databaseReady
-    ? await Promise.all([getFoundationSummary(), listActiveMatches()])
-    : [{ players: 0, teams: 0, pools: 0 }, []];
+  const [summary, activeMatches, leaderboard] = databaseReady
+    ? await Promise.all([
+        getFoundationSummary(),
+        listActiveMatches(),
+        getLeaderboard({ period: "SEVEN_DAYS", matchMode: "ALL", sort: "POINTS" }),
+      ])
+    : [{ players: 0, teams: 0, pools: 0 }, [], []];
 
   return (
     <div className="space-y-8">
@@ -97,6 +113,85 @@ export default async function OverviewPage() {
               ))}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {databaseReady && leaderboard.length > 0 ? (
+        <section>
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+                7 ngày gần nhất
+              </p>
+              <h2 className="mt-1 text-2xl font-bold">Bảng xếp hạng</h2>
+            </div>
+            <Button asChild variant="ghost" className="shrink-0 font-bold text-primary hover:text-primary">
+              <Link href="/leaderboard?period=SEVEN_DAYS&mode=ALL&sort=POINTS">
+                Xem đầy đủ <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <Card className="overflow-hidden border-white/10 bg-card/80">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table className="min-w-[760px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>#</TableHead>
+                      <TableHead>Người chơi</TableHead>
+                      <TableHead className="bg-primary/12 text-primary">Điểm</TableHead>
+                      <TableHead>Trận</TableHead>
+                      <TableHead>Thắng</TableHead>
+                      <TableHead>Hòa</TableHead>
+                      <TableHead>Thua</TableHead>
+                      <TableHead>Winrate</TableHead>
+                      <TableHead>GF</TableHead>
+                      <TableHead>GA</TableHead>
+                      <TableHead>GD</TableHead>
+                      <TableHead>Chuỗi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {leaderboard.slice(0, 5).map((entry, index, entries) => (
+                      <TableRow key={entry.playerId}>
+                        <TableCell className="font-black text-primary">{entry.rank}</TableCell>
+                        <TableCell className="font-bold">
+                          <div className="flex items-center gap-2">
+                            <Avatar size="sm">
+                              <AvatarImage alt={entry.playerName} src={entry.avatarUrl ?? undefined} />
+                              <AvatarFallback className="bg-primary/10 font-bold text-primary">
+                                {initials(entry.playerName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{entry.playerName}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className={`bg-primary/8 font-black text-primary ${index === 0 ? "rounded-t-lg" : ""} ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}>
+                          {entry.points}
+                        </TableCell>
+                        <TableCell>{entry.matches}</TableCell>
+                        <TableCell>{entry.wins}</TableCell>
+                        <TableCell>{entry.draws}</TableCell>
+                        <TableCell>{entry.losses}</TableCell>
+                        <TableCell>{entry.winRate}%</TableCell>
+                        <TableCell>{entry.goalsFor}</TableCell>
+                        <TableCell>{entry.goalsAgainst}</TableCell>
+                        <TableCell className={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined}>
+                          {entry.goalDifference > 0 ? "+" : ""}{entry.goalDifference}
+                        </TableCell>
+                        <TableCell>
+                          {entry.currentStreak > 0 ? (
+                            <Badge className="gap-1"><Swords className="size-3" /> {entry.currentStreak}W</Badge>
+                          ) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </section>
       ) : null}
 
