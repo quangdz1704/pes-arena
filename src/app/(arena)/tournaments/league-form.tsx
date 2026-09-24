@@ -7,19 +7,21 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { initialActionState } from "@/lib/action-state";
 
-import { createLeagueAction } from "./actions";
+import { createTournamentAction } from "./actions";
 
 type PlayerOption = { id: string; name: string };
 type MatchMode = "ONE_V_ONE" | "TWO_V_TWO";
+type TournamentType = "LEAGUE" | "KNOCKOUT";
 
-export function LeagueForm({ players }: { players: PlayerOption[] }) {
+export function TournamentForm({ players }: { players: PlayerOption[] }) {
   const router = useRouter();
+  const [type, setType] = useState<TournamentType>("LEAGUE");
   const [mode, setMode] = useState<MatchMode>("ONE_V_ONE");
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [pairs, setPairs] = useState<string[][]>([]);
   const [firstPlayerId, setFirstPlayerId] = useState("");
   const [secondPlayerId, setSecondPlayerId] = useState("");
-  const [state, action] = useActionState(createLeagueAction, initialActionState);
+  const [state, action] = useActionState(createTournamentAction, initialActionState);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -31,6 +33,7 @@ export function LeagueForm({ players }: { players: PlayerOption[] }) {
 
   const usedPlayerIds = mode === "ONE_V_ONE" ? selectedPlayerIds : pairs.flat();
   const competitors = mode === "ONE_V_ONE" ? selectedPlayerIds.map((id) => [id]) : pairs;
+  const isValidKnockoutSize = [2, 4, 8].includes(competitors.length);
   const canAddPair = Boolean(firstPlayerId && secondPlayerId && firstPlayerId !== secondPlayerId && !usedPlayerIds.includes(firstPlayerId) && !usedPlayerIds.includes(secondPlayerId));
 
   function changeMode(nextMode: MatchMode) {
@@ -50,14 +53,23 @@ export function LeagueForm({ players }: { players: PlayerOption[] }) {
 
   return (
     <form action={action} className="space-y-4">
+      <input type="hidden" name="type" value={type} />
       <input type="hidden" name="matchMode" value={mode} />
       <input type="hidden" name="competitors" value={JSON.stringify(competitors)} />
       <input className="h-10 w-full rounded border bg-background px-3" name="name" placeholder="Tên giải đấu" required />
 
       <div className="grid grid-cols-2 gap-3">
-        {([ ["ONE_V_ONE", "League 1v1", "Mỗi tuyển thủ là một đối thủ"], ["TWO_V_TWO", "League 2v2", "Mỗi cặp là một đối thủ"] ] as const).map(([value, title, description]) => (
-          <button className={`rounded-xl border p-3 text-left ${mode === value ? "border-primary bg-primary/10" : "border-border"}`} key={value} onClick={() => changeMode(value)} type="button">
+        {([ ["LEAGUE", "League", "Vòng tròn: ai cũng gặp nhau"], ["KNOCKOUT", "Knockout", "Thua là dừng cuộc chơi"] ] as const).map(([value, title, description]) => (
+          <button className={`rounded-xl border p-3 text-left ${type === value ? "border-primary bg-primary/10" : "border-border"}`} key={value} onClick={() => setType(value)} type="button">
             <span className="block font-black">{title}</span><span className="text-xs text-muted-foreground">{description}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {([ ["ONE_V_ONE", "1v1", "Mỗi tuyển thủ là một đối thủ"], ["TWO_V_TWO", "2v2", "Mỗi cặp là một đối thủ"] ] as const).map(([value, label, description]) => (
+          <button className={`rounded-xl border p-3 text-left ${mode === value ? "border-primary bg-primary/10" : "border-border"}`} key={value} onClick={() => changeMode(value)} type="button">
+            <span className="block font-black">{type === "KNOCKOUT" ? "Knockout" : "League"} {label}</span><span className="text-xs text-muted-foreground">{description}</span>
           </button>
         ))}
       </div>
@@ -80,8 +92,12 @@ export function LeagueForm({ players }: { players: PlayerOption[] }) {
           {pairs.length ? <div className="space-y-2">{pairs.map(([firstId, secondId], index) => <div className="flex items-center justify-between rounded border px-3 py-2" key={`${firstId}-${secondId}`}><span className="font-semibold">{players.find((player) => player.id === firstId)?.name} + {players.find((player) => player.id === secondId)?.name}</span><button className="text-sm text-destructive" onClick={() => setPairs((current) => current.filter((_, pairIndex) => pairIndex !== index))} type="button">Bỏ</button></div>)}</div> : null}
         </div>
       )}
-      <p className="text-sm text-muted-foreground">Cần tối thiểu 2 đối thủ. Đang có {competitors.length} đối thủ.</p>
-      <Button className="w-full" disabled={competitors.length < 2} type="submit">Tạo League {mode === "ONE_V_ONE" ? "1v1" : "2v2"} & sinh lịch</Button>
+      <p className="text-sm text-muted-foreground">
+        {type === "KNOCKOUT" ? `Knockout cần 2, 4 hoặc 8 đối thủ. Đang có ${competitors.length}.` : `Cần tối thiểu 2 đối thủ. Đang có ${competitors.length} đối thủ.`}
+      </p>
+      <Button className="w-full" disabled={competitors.length < 2 || (type === "KNOCKOUT" && !isValidKnockoutSize)} type="submit">
+        Tạo {type === "KNOCKOUT" ? "bracket knockout" : "League"} {mode === "ONE_V_ONE" ? "1v1" : "2v2"}
+      </Button>
     </form>
   );
 }

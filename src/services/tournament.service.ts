@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { cancelTournamentRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
+import { cancelTournamentRecord, createKnockoutRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
 
 export const createLeagueSchema = z.object({
   name: z.string().trim().min(3).max(150),
@@ -18,6 +18,13 @@ export const createLeagueSchema = z.object({
 });
 export async function createLeague(input: z.infer<typeof createLeagueSchema>) {
   return createLeagueRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: input.competitors });
+}
+export const createKnockoutSchema = createLeagueSchema.refine(
+  (value) => Number.isInteger(Math.log2(value.competitors.length)),
+  { path: ["competitors"], message: "Knockout cần 2, 4 hoặc 8 đối thủ." },
+);
+export async function createKnockout(input: z.infer<typeof createKnockoutSchema>) {
+  return createKnockoutRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: input.competitors });
 }
 export async function listTournaments() { return listTournamentRecords(); }
 export async function getTournament(tournamentId: string) {

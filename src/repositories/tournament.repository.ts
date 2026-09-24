@@ -15,6 +15,7 @@ import {
 } from "@/db/schema";
 
 import { generateRoundRobin } from "@/services/round-robin";
+import { generateKnockoutRound } from "@/services/knockout";
 
 export async function createLeagueRecord(input: {
   name: string;
@@ -33,12 +34,64 @@ export async function createLeagueRecord(input: {
   return tournamentId;
 }
 
+export async function createKnockoutRecord(input: {
+  name: string;
+  matchMode: "ONE_V_ONE" | "TWO_V_TWO";
+  competitorPlayerIds: string[][];
+}) {
+  const tournamentId = randomUUID();
+  const competitors = input.competitorPlayerIds.map((playerIds) => ({
+    id: randomUUID(),
+    playerIds,
+  }));
+  const fixtures = generateKnockoutRound(competitors);
+  const db = getDb();
+
+  await db.batch([
+    db.insert(tournaments).values({
+      id: tournamentId,
+      name: input.name,
+      type: "KNOCKOUT",
+      matchMode: input.matchMode,
+      status: "ACTIVE",
+    }),
+    db.insert(tournamentCompetitors).values(
+      competitors.map((competitor, index) => ({
+        id: competitor.id,
+        tournamentId,
+        displayName: `Competitor ${index + 1}`,
+        seed: index + 1,
+      })),
+    ),
+    db.insert(tournamentCompetitorPlayers).values(
+      competitors.flatMap((competitor) =>
+        competitor.playerIds.map((playerId, index) => ({
+          competitorId: competitor.id,
+          playerId,
+          position: index + 1,
+        })),
+      ),
+    ),
+    db.insert(tournamentFixtures).values(
+      fixtures.map((fixture) => ({
+        tournamentId,
+        round: fixture.round,
+        homeCompetitorId: fixture.home.id,
+        awayCompetitorId: fixture.away.id,
+      })),
+    ),
+  ]);
+
+  return tournamentId;
+}
+
 export async function finishTournamentIfComplete(tournamentId: string) {
   await getDb().execute(sql`
     update tournaments
     set status = 'FINISHED'::tournament_status, updated_at = now()
     where id = ${tournamentId}::uuid
       and status = 'ACTIVE'::tournament_status
+      and type = 'LEAGUE'::tournament_type
       and not exists (
         select 1
         from tournament_fixtures fixture
@@ -47,6 +100,80 @@ export async function finishTournamentIfComplete(tournamentId: string) {
           and (match.status is distinct from 'FINISHED'::match_status)
       )
   `);
+}
+
+export async function getTournamentType(tournamentId: string) {
+  const [tournament] = await getDb()
+    .select({ type: tournaments.type })
+    .from(tournaments)
+    .where(eq(tournaments.id, tournamentId));
+  return tournament?.type ?? null;
+}
+
+export async function advanceKnockoutTournament(tournamentId: string) {
+  const db = getDb();
+  const [tournament] = await db
+    .select({ id: tournaments.id, status: tournaments.status, type: tournaments.type })
+    .from(tournaments)
+    .where(eq(tournaments.id, tournamentId));
+  if (!tournament || tournament.status !== "ACTIVE" || tournament.type !== "KNOCKOUT") return;
+
+  const fixtures = await db
+    .select()
+    .from(tournamentFixtures)
+    .where(eq(tournamentFixtures.tournamentId, tournamentId))
+    .orderBy(asc(tournamentFixtures.round), asc(tournamentFixtures.createdAt));
+  const currentRound = fixtures.at(-1)?.round;
+  if (!currentRound) return;
+
+  const currentRoundFixtures = fixtures.filter((fixture) => fixture.round === currentRound);
+  if (currentRoundFixtures.some((fixture) => !fixture.matchId)) return;
+  const matchIds = currentRoundFixtures.flatMap((fixture) => (fixture.matchId ? [fixture.matchId] : []));
+  const matchRows = await db
+    .select({ id: matches.id, status: matches.status })
+    .from(matches)
+    .where(inArray(matches.id, matchIds));
+  if (matchRows.length !== currentRoundFixtures.length || matchRows.some((match) => match.status !== "FINISHED")) return;
+
+  const scoreRows = await db
+    .select({ matchId: matchSides.matchId, side: matchSides.side, score: matchSides.score })
+    .from(matchSides)
+    .where(inArray(matchSides.matchId, matchIds));
+  const scoresByMatchId = new Map<string, { A: number | null; B: number | null }>();
+  for (const score of scoreRows) {
+    const scores = scoresByMatchId.get(score.matchId) ?? { A: null, B: null };
+    scores[score.side] = score.score;
+    scoresByMatchId.set(score.matchId, scores);
+  }
+
+  const winners = currentRoundFixtures.map((fixture) => {
+    const scores = fixture.matchId ? scoresByMatchId.get(fixture.matchId) : null;
+    if (!scores || scores.A === null || scores.B === null || scores.A === scores.B) {
+      throw new Error("Trận knockout phải có đội thắng trước khi sang vòng tiếp theo.");
+    }
+    return scores.A > scores.B ? fixture.homeCompetitorId : fixture.awayCompetitorId;
+  });
+
+  if (winners.length === 1) {
+    await db
+      .update(tournaments)
+      .set({ status: "FINISHED", updatedAt: new Date() })
+      .where(and(eq(tournaments.id, tournamentId), eq(tournaments.status, "ACTIVE")));
+    return;
+  }
+
+  const nextFixtures = generateKnockoutRound(winners, currentRound + 1);
+  await db
+    .insert(tournamentFixtures)
+    .values(
+      nextFixtures.map((fixture) => ({
+        tournamentId,
+        round: fixture.round,
+        homeCompetitorId: fixture.home,
+        awayCompetitorId: fixture.away,
+      })),
+    )
+    .onConflictDoNothing();
 }
 
 export async function cancelTournamentRecord(tournamentId: string) {

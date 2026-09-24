@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageHeading } from "@/components/shared/page-heading";
 import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
+import { getKnockoutRoundLabel } from "@/services/knockout";
 import { getTournament } from "@/services/tournament.service";
 
 import { CancelTournamentButton } from "./cancel-tournament-button";
@@ -25,6 +26,7 @@ export default async function TournamentDetailPage({
   for (const fixture of tournament.fixtures) {
     rounds.set(fixture.round, [...(rounds.get(fixture.round) ?? []), fixture]);
   }
+  const knockoutTotalRounds = Math.log2(tournament.competitors.length);
   const standings = tournament.competitors.map((competitor) => ({
     ...competitor, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0,
   }));
@@ -43,6 +45,11 @@ export default async function TournamentDetailPage({
   }
   standings.sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) || b.goalsFor - a.goalsFor || a.name.localeCompare(b.name));
 
+  const finalFixture = tournament.fixtures.find((fixture) => fixture.round === knockoutTotalRounds);
+  const champion = finalFixture?.matchStatus === "FINISHED" && finalFixture.homeScore !== finalFixture.awayScore
+    ? finalFixture.homeScore! > finalFixture.awayScore! ? finalFixture.homeName : finalFixture.awayName
+    : null;
+
   return (
     <div className="mx-auto max-w-5xl space-y-7">
       <div className="space-y-3">
@@ -50,14 +57,14 @@ export default async function TournamentDetailPage({
           ← Quay lại giải đấu
         </Link>
         <PageHeading
-          eyebrow="League 1v1"
+          eyebrow={`${tournament.type === "KNOCKOUT" ? "Knockout" : "League"} ${tournament.matchMode === "ONE_V_ONE" ? "1v1" : "2v2"}`}
           title={tournament.name}
           description={`${tournament.competitors.length} đối thủ · ${tournament.fixtures.length} trận · ${tournament.status}`}
           action={tournament.status === "ACTIVE" ? <CancelTournamentButton tournamentId={tournament.id} /> : undefined}
         />
       </div>
 
-      <Card>
+      {tournament.type === "LEAGUE" ? <Card>
         <CardContent className="p-5">
           <h2 className="font-black">Bảng điểm</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -78,14 +85,24 @@ export default async function TournamentDetailPage({
             </table>
           </div>
         </CardContent>
-      </Card>
+      </Card> : (
+        <Card>
+          <CardContent className="p-5">
+            <h2 className="font-black">Nhánh đấu</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Đội thắng sẽ tự động đi tiếp khi kết quả trận được lưu. Knockout không chấp nhận tỷ số hoà.
+            </p>
+            {champion ? <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 font-black text-primary">🏆 Vô địch: {champion}</p> : null}
+          </CardContent>
+        </Card>
+      )}
 
       <section className="space-y-4">
         <h2 className="text-xl font-black">Lịch thi đấu</h2>
         {[...rounds.entries()].map(([round, fixtures]) => (
           <Card key={round}>
             <CardContent className="p-5">
-              <h3 className="font-black">Vòng {round}</h3>
+              <h3 className="font-black">{tournament.type === "KNOCKOUT" ? getKnockoutRoundLabel(round, knockoutTotalRounds) : `Vòng ${round}`}</h3>
               <div className="mt-3 divide-y rounded-md border">
                 {fixtures.map((fixture) => (
                   <div className="flex items-center justify-between gap-4 px-4 py-3" key={fixture.id}>
@@ -107,6 +124,9 @@ export default async function TournamentDetailPage({
             </CardContent>
           </Card>
         ))}
+        {tournament.type === "KNOCKOUT" && tournament.status === "ACTIVE" && rounds.size < knockoutTotalRounds ? (
+          <p className="text-sm text-muted-foreground">Vòng kế tiếp sẽ xuất hiện ngay khi tất cả trận của vòng hiện tại đã có kết quả.</p>
+        ) : null}
       </section>
     </div>
   );

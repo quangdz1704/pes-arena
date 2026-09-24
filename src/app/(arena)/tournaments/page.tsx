@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
 import { listPlayers } from "@/services/player.service";
 import { listTournaments } from "@/services/tournament.service";
-import { LeagueForm } from "./league-form";
+import { TournamentForm } from "./league-form";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +26,7 @@ export default async function TournamentsPage() {
               <div>
                 <p className="font-black">{tournament.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {tournament.competitors.length} đối thủ · {tournament.fixtures.length} trận · {tournament.status}
+                  {tournament.type === "KNOCKOUT" ? "Knockout" : "League"} · {tournament.competitors.length} đối thủ · {tournament.fixtures.length} trận · {tournament.status}
                 </p>
               </div>
               <span className="text-sm font-bold text-primary">Xem chi tiết →</span>
@@ -42,13 +42,13 @@ export default async function TournamentsPage() {
       <PageHeading
         eyebrow="Thi đấu"
         title="Giải đấu"
-        description="League 1v1, tự sinh lịch vòng tròn và sẵn sàng bước vào cuộc chiến."
+        description="League vòng tròn hoặc knockout: tự sinh lịch và sẵn sàng bước vào cuộc chiến."
       />
       {ready ? (
         <>
           <Card>
             <CardContent className="p-5">
-              <LeagueForm players={players.filter((player) => player.isActive).map((player) => ({ id: player.id, name: player.name }))} />
+              <TournamentForm players={players.filter((player) => player.isActive).map((player) => ({ id: player.id, name: player.name }))} />
             </CardContent>
           </Card>
           <section className="space-y-3"><h2 className="text-xl font-black">Giải đang diễn ra</h2>{activeTournaments.length ? tournamentCards(activeTournaments) : <p className="text-sm text-muted-foreground">Chưa có giải nào đang diễn ra.</p>}</section>
