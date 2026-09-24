@@ -9,6 +9,8 @@ import {
   finishMatchInputSchema,
   startMatch,
   startMatchInputSchema,
+  updateMatchScoreInputSchema,
+  updatePlayingMatchScore,
 } from "@/services/match.service";
 
 export type MatchActionState = ActionState & { matchId?: string };
@@ -27,6 +29,25 @@ export async function startMatchAction(
     revalidatePath("/history");
     revalidatePath("/tournaments");
     return { status: "success", matchId: match.id };
+  } catch (error) {
+    return toActionError(error);
+  }
+}
+
+export async function updateMatchScoreAction(
+  _previousState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  try {
+    const input = updateMatchScoreInputSchema.parse({
+      matchId: formData.get("matchId"),
+      sideAScore: formData.get("sideAScore"),
+      sideBScore: formData.get("sideBScore"),
+    });
+    await updatePlayingMatchScore(input);
+    revalidatePath("/");
+    revalidatePath(`/matches/${input.matchId}`);
+    return { status: "success", message: "Đã cập nhật tỉ số live." };
   } catch (error) {
     return toActionError(error);
   }

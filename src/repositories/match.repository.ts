@@ -430,3 +430,27 @@ export async function finishMatchRecord(
 
   return match;
 }
+
+export async function updatePlayingMatchScoreRecord(
+  id: string,
+  sideAScore: number,
+  sideBScore: number,
+) {
+  const result = await getDb().execute(sql`
+    with playing_match as (
+      update matches
+      set updated_at = now()
+      where id = ${id} and status = 'PLAYING'::match_status
+      returning id
+    ), scored_sides as (
+      update match_sides
+      set score = case
+        when side = 'A'::match_side then ${sideAScore}::integer
+        else ${sideBScore}::integer
+      end
+      where match_id in (select id from playing_match)
+    )
+    select id from playing_match
+  `);
+  if (!result.rows[0]) throw new Error("Trận đấu không tồn tại hoặc đã được lưu kết quả.");
+}

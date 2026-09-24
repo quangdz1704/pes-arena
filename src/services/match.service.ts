@@ -10,6 +10,7 @@ import {
   getMatchSetupRecords,
   listActiveMatchRecords,
   listMatchHistoryRecords,
+  updatePlayingMatchScoreRecord,
 } from "@/repositories/match.repository";
 import {
   finishTournamentIfComplete,
@@ -44,6 +45,12 @@ export const finishMatchInputSchema = z.object({
   if (new Set(value.notes.map((note) => note.playerId)).size !== value.notes.length) {
     context.addIssue({ code: "custom", path: ["notes"], message: "Mỗi người chỉ có một ghi chú." });
   }
+});
+
+export const updateMatchScoreInputSchema = z.object({
+  matchId: z.uuid(),
+  sideAScore: z.coerce.number().int().min(0).max(99),
+  sideBScore: z.coerce.number().int().min(0).max(99),
 });
 
 export type StartMatchInput = z.infer<typeof startMatchInputSchema>;
@@ -154,4 +161,8 @@ export async function finishMatch(input: z.infer<typeof finishMatchInputSchema>)
 
   const discordStatus = await sendMatchResultToDiscord(finishedMatch);
   return { match: finishedMatch, discordStatus };
+}
+
+export async function updatePlayingMatchScore(input: z.infer<typeof updateMatchScoreInputSchema>) {
+  await updatePlayingMatchScoreRecord(input.matchId, input.sideAScore, input.sideBScore);
 }

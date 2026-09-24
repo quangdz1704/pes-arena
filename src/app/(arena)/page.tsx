@@ -76,12 +76,12 @@ export default async function OverviewPage() {
                       <Badge className="rounded-full px-3 py-1">
                         {activeMatch.matchMode === "ONE_V_ONE" ? "1v1" : "2v2"}
                       </Badge>
-                      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Chưa chốt tỉ số</span>
+                      <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{activeMatch.sides.some((side) => side.score !== null) ? "Tỉ số live" : "Chưa chốt tỉ số"}</span>
                     </div>
                     <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
                       {activeMatch.sides.map((side, index) => (
                         <div key={side.id} className={index === 1 ? "contents" : undefined}>
-                          {index === 1 ? <p className="text-lg font-black text-primary">VS</p> : null}
+                          {index === 1 ? <p className="text-lg font-black text-primary">{activeMatch.sides[0].score ?? 0} - {activeMatch.sides[1].score ?? 0}</p> : null}
                           <div className="min-w-0">
                             <p className="truncate font-black">{side.players.map((player) => player.name).join(" + ")}</p>
                             <p className="mt-1 truncate text-xs text-muted-foreground">{side.team?.name}</p>
