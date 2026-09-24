@@ -180,7 +180,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredPlayers.map((player) => (
-            <Card key={player.id} className="group relative isolate min-h-[380px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+            <Card key={player.id} className="group relative isolate min-h-[450px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
               <div aria-hidden className="player-card-grid absolute inset-0 opacity-60" />
               <div aria-hidden className="absolute -right-14 -top-12 size-48 rounded-full bg-primary/12 blur-3xl transition duration-500 group-hover:bg-primary/20" />
               <CardContent className="relative flex h-full flex-col p-4">
@@ -207,13 +207,16 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   </div>
                 </div>
 
-                <Link href={`/players/${player.id}`} className="mt-4 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <Avatar size="lg" className="size-28 border-2 border-primary/30 shadow-[0_0_0_7px_rgba(106,255,148,0.06)] transition duration-300 group-hover:scale-105 group-hover:border-primary/60">
-                    <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
-                    <AvatarFallback className="bg-primary/10 text-3xl font-black text-primary">
-                      {initials(player.name)}
-                    </AvatarFallback>
-                  </Avatar>
+                <Link href={`/players/${player.id}`} className="mt-5 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <div className="relative flex h-44 items-center justify-center">
+                    <div aria-hidden className="absolute size-40 rounded-full border border-primary/15 bg-primary/8 shadow-[0_0_48px_rgba(106,255,148,0.16)]" />
+                    <Avatar size="default" className="relative size-36 border-2 border-primary/45 shadow-[0_0_0_8px_rgba(106,255,148,0.08)] transition duration-300 group-hover:scale-105 group-hover:border-primary">
+                      <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
+                      <AvatarFallback className="bg-primary/10 text-5xl font-black text-primary">
+                        {initials(player.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                   <div className="mt-4 min-w-0">
                     <h2 className="truncate text-2xl font-black tracking-tight group-hover:text-primary">{player.name}</h2>
                     <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{player.nickname || "Arena contender"}</p>
