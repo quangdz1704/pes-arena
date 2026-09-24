@@ -465,7 +465,7 @@ export function MatchBuilder({
         </CardContent>
       </Card>
 
-      <Card className="border-white/10 bg-card/80">
+      <Card className="relative z-20 overflow-visible border-white/10 bg-card/80">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dices className="size-5 text-primary" /> 3. {matchSetupMode === "RANDOM" ? "Random đội bóng" : "Chọn đội bóng"}
