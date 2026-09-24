@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Crown, Pencil, Plus, Power, Search, Swords, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -207,17 +206,24 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   </div>
                 </div>
 
-                <Link href={`/players/${player.id}`} className="mt-5 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <div className="relative flex h-44 items-center justify-center">
-                    <div aria-hidden className="absolute size-40 rounded-full border border-primary/15 bg-primary/8 shadow-[0_0_48px_rgba(106,255,148,0.16)]" />
-                    <Avatar size="default" className="relative size-36 border-2 border-primary/45 shadow-[0_0_0_8px_rgba(106,255,148,0.08)] transition duration-300 group-hover:scale-105 group-hover:border-primary">
-                      <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
-                      <AvatarFallback className="bg-primary/10 text-5xl font-black text-primary">
-                        {initials(player.name)}
-                      </AvatarFallback>
-                    </Avatar>
+                <Link href={`/players/${player.id}`} className="mt-2 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <div className="relative h-52 w-full overflow-hidden">
+                    {player.avatarUrl ? (
+                      <>
+                        {/* Avatar URLs are user-managed and may use arbitrary validated hosts. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img aria-hidden alt="" className="absolute -inset-8 size-[calc(100%+4rem)] scale-110 object-cover object-top opacity-45 blur-3xl" src={player.avatarUrl} />
+                        <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-transparent via-[#101419]/15 to-[#101419]" />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto h-52 w-44 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
+                      </>
+                    ) : (
+                      <div className="absolute inset-x-0 bottom-0 flex h-48 items-center justify-center bg-gradient-to-t from-primary/12 to-transparent">
+                        <span className="text-8xl font-black tracking-tighter text-primary/85">{initials(player.name)}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-4 min-w-0">
+                  <div className="-mt-4 min-w-0">
                     <h2 className="truncate text-2xl font-black tracking-tight group-hover:text-primary">{player.name}</h2>
                     <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{player.nickname || "Arena contender"}</p>
                   </div>

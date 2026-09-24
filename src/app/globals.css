@@ -141,6 +141,10 @@
   mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
 
+.player-card-portrait {
+  mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+}
+
 .leaderboard-mobile-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
