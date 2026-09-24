@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Layers3, Pencil, Plus, Power } from "lucide-react";
+import { Layers3, Pencil, Plus, Power, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -247,6 +247,13 @@ function PoolDialog({ pool, teams }: { pool?: TeamPoolDto; teams: TeamDto[] }) {
 }
 
 export function TeamManager({ teams, pools }: { teams: TeamDto[]; pools: TeamPoolDto[] }) {
+  const [teamQuery, setTeamQuery] = useState("");
+  const normalizedTeamQuery = teamQuery.trim().toLocaleLowerCase("vi");
+  const filteredTeams = teams.filter((team) =>
+    [team.name, team.shortName, team.country, team.type === "CLUB" ? "clb" : "đội tuyển"]
+      .some((value) => value.toLocaleLowerCase("vi").includes(normalizedTeamQuery)),
+  );
+
   return (
     <div className="space-y-10">
       <section className="space-y-4">
@@ -298,8 +305,26 @@ export function TeamManager({ teams, pools }: { teams: TeamDto[]; pools: TeamPoo
           </div>
           <TeamDialog />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {teams.map((team) => (
+        <div className="relative max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Tìm đội bóng"
+            className="pl-9"
+            onChange={(event) => setTeamQuery(event.target.value)}
+            placeholder="Tìm theo tên đội, mã hoặc quốc gia..."
+            value={teamQuery}
+          />
+        </div>
+        {normalizedTeamQuery ? (
+          <p className="text-sm text-muted-foreground">Tìm thấy {filteredTeams.length}/{teams.length} đội.</p>
+        ) : null}
+        {filteredTeams.length === 0 ? (
+          <Card className="border-dashed bg-transparent">
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">Không tìm thấy đội bóng phù hợp.</CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredTeams.map((team) => (
             <Card key={team.id} className="border-white/8 bg-card/80">
               <CardContent className="flex items-center gap-3 py-4">
                 <TeamLogo team={team} />
@@ -318,7 +343,8 @@ export function TeamManager({ teams, pools }: { teams: TeamDto[]; pools: TeamPoo
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
       </section>
     </div>
   );

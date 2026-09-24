@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Pencil, Plus, Power, UserRound } from "lucide-react";
+import { Pencil, Plus, Power, Search, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -129,6 +129,14 @@ export function AddPlayerButton() {
 }
 
 export function PlayerManager({ players }: { players: PlayerDto[] }) {
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLocaleLowerCase("vi");
+  const filteredPlayers = players.filter((player) =>
+    [player.name, player.nickname]
+      .filter((value): value is string => Boolean(value))
+      .some((value) => value.toLocaleLowerCase("vi").includes(normalizedQuery)),
+  );
+
   if (players.length === 0) {
     return (
       <Card className="border-dashed bg-transparent">
@@ -145,46 +153,71 @@ export function PlayerManager({ players }: { players: PlayerDto[] }) {
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {players.map((player) => (
-        <Card key={player.id} className="border-white/8 bg-card/80">
-          <CardContent className="flex items-center gap-4 py-5">
-            <Avatar className="size-12 border border-white/10">
-              <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
-              <AvatarFallback className="bg-primary/10 font-black text-primary">
-                {initials(player.name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h2 className="truncate font-bold">{player.name}</h2>
-                <Badge variant={player.isActive ? "default" : "secondary"}>
-                  {player.isActive ? "Đang chơi" : "Tạm nghỉ"}
-                </Badge>
-              </div>
-              <p className="mt-1 truncate text-sm text-muted-foreground">
-                {player.nickname || "Chưa có biệt danh"}
-              </p>
-            </div>
-            <div className="flex items-center">
-              <PlayerDialog player={player} />
-              <form action={setPlayerActiveAction}>
-                <input type="hidden" name="id" value={player.id} />
-                <input type="hidden" name="isActive" value={String(!player.isActive)} />
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={player.isActive ? `Tạm ẩn ${player.name}` : `Bật ${player.name}`}
-                  className={player.isActive ? "text-muted-foreground" : "text-primary"}
-                >
-                  <Power className="size-4" />
-                </Button>
-              </form>
-            </div>
+    <div className="space-y-4">
+      <div className="relative max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          aria-label="Tìm người chơi"
+          className="pl-9"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Tìm theo tên hoặc biệt danh..."
+          value={query}
+        />
+      </div>
+      {normalizedQuery ? (
+        <p className="text-sm text-muted-foreground">
+          Tìm thấy {filteredPlayers.length}/{players.length} người chơi.
+        </p>
+      ) : null}
+      {filteredPlayers.length === 0 ? (
+        <Card className="border-dashed bg-transparent">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Không tìm thấy người chơi phù hợp.
           </CardContent>
         </Card>
-      ))}
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredPlayers.map((player) => (
+            <Card key={player.id} className="border-white/8 bg-card/80">
+              <CardContent className="flex items-center gap-4 py-5">
+                <Avatar className="size-12 border border-white/10">
+                  <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
+                  <AvatarFallback className="bg-primary/10 font-black text-primary">
+                    {initials(player.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="truncate font-bold">{player.name}</h2>
+                    <Badge variant={player.isActive ? "default" : "secondary"}>
+                      {player.isActive ? "Đang chơi" : "Tạm nghỉ"}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    {player.nickname || "Chưa có biệt danh"}
+                  </p>
+                </div>
+                <div className="flex items-center">
+                  <PlayerDialog player={player} />
+                  <form action={setPlayerActiveAction}>
+                    <input type="hidden" name="id" value={player.id} />
+                    <input type="hidden" name="isActive" value={String(!player.isActive)} />
+                    <Button
+                      type="submit"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={player.isActive ? `Tạm ẩn ${player.name}` : `Bật ${player.name}`}
+                      className={player.isActive ? "text-muted-foreground" : "text-primary"}
+                    >
+                      <Power className="size-4" />
+                    </Button>
+                  </form>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
