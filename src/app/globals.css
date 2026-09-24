@@ -135,6 +135,25 @@
   color: var(--foreground);
 }
 
+.leaderboard-mobile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.leaderboard-table {
+  display: none;
+}
+
+@media (min-width: 48rem) {
+  .leaderboard-mobile-list {
+    display: none;
+  }
+
+  .leaderboard-table {
+    display: block;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

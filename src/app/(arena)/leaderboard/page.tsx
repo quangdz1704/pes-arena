@@ -114,7 +114,7 @@ export default async function LeaderboardPage({
                 })}
               </section>
 
-              <div className="space-y-3 md:hidden">
+              <div className="leaderboard-mobile-list space-y-3">
                 {entries.map((entry) => (
                   <Card className="border-white/10 bg-card/80" key={entry.playerId}>
                     <CardContent className="p-4">
@@ -122,34 +122,36 @@ export default async function LeaderboardPage({
                         <div className="min-w-0"><p className="text-xs font-bold tracking-[0.16em] text-primary">HẠNG {entry.rank}</p><p className="truncate text-lg font-black">{entry.playerName}</p></div>
                         <div className="shrink-0 text-right"><p className="font-black">{entry.winRate}%</p><p className="text-xs text-muted-foreground">winrate</p></div>
                       </div>
-                      <div className="mt-3 grid grid-cols-4 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GF / GA" value={`${entry.goalsFor} / ${entry.goalsAgainst}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
+                      <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GF / GA" value={`${entry.goalsFor} / ${entry.goalsAgainst}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-              <Card className="hidden border-white/10 bg-card/80 md:block">
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {entries.map((entry) => (
-                        <TableRow key={entry.playerId}>
-                          <TableCell className="font-black text-primary">{entry.rank}</TableCell>
-                          <TableCell className="font-bold">{entry.playerName}</TableCell>
-                          <TableCell>{entry.matches}</TableCell><TableCell>{entry.wins}</TableCell><TableCell>{entry.draws}</TableCell><TableCell>{entry.losses}</TableCell>
-                          <TableCell>{entry.winRate}%</TableCell><TableCell>{entry.goalsFor}</TableCell><TableCell>{entry.goalsAgainst}</TableCell>
-                          <TableCell className={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined}>{entry.goalDifference > 0 ? "+" : ""}{entry.goalDifference}</TableCell>
-                          <TableCell>{entry.currentStreak > 0 ? <Badge className="gap-1"><Swords className="size-3" /> {entry.currentStreak}W</Badge> : "—"}</TableCell>
+              <div className="leaderboard-table">
+                <Card className="border-white/10 bg-card/80">
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                      </TableHeader>
+                      <TableBody>
+                        {entries.map((entry) => (
+                          <TableRow key={entry.playerId}>
+                            <TableCell className="font-black text-primary">{entry.rank}</TableCell>
+                            <TableCell className="font-bold">{entry.playerName}</TableCell>
+                            <TableCell>{entry.matches}</TableCell><TableCell>{entry.wins}</TableCell><TableCell>{entry.draws}</TableCell><TableCell>{entry.losses}</TableCell>
+                            <TableCell>{entry.winRate}%</TableCell><TableCell>{entry.goalsFor}</TableCell><TableCell>{entry.goalsAgainst}</TableCell>
+                            <TableCell className={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined}>{entry.goalDifference > 0 ? "+" : ""}{entry.goalDifference}</TableCell>
+                            <TableCell>{entry.currentStreak > 0 ? <Badge className="gap-1"><Swords className="size-3" /> {entry.currentStreak}W</Badge> : "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
             </>
           )}
         </>
