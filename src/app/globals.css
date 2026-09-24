@@ -142,7 +142,9 @@
 }
 
 .player-card-portrait {
-  mask-image: linear-gradient(to bottom, black 45%, transparent 100%);
+  border-radius: 2rem 2rem 0 0;
+  box-shadow: 0 18px 34px rgb(0 0 0 / 22%);
+  mask-image: linear-gradient(to bottom, black 58%, rgb(0 0 0 / 92%) 70%, transparent 100%);
 }
 
 .leaderboard-mobile-stats {

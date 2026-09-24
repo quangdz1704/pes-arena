@@ -212,10 +212,10 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                       <>
                         {/* Avatar URLs are user-managed and may use arbitrary validated hosts. */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img aria-hidden alt="" className="absolute -inset-8 size-[calc(100%+4rem)] scale-110 object-cover object-top opacity-45 blur-3xl" src={player.avatarUrl} />
-                        <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-transparent via-[#101419]/15 to-[#101419]" />
+                        <img aria-hidden alt="" className="absolute -inset-10 size-[calc(100%+5rem)] scale-125 object-cover object-top opacity-30 blur-3xl" src={player.avatarUrl} />
+                        <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[#101419]/10 via-[#101419]/35 to-[#101419]" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto h-52 w-44 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
+                        <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto h-48 w-40 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
                       </>
                     ) : (
                       <div className="absolute inset-x-0 bottom-0 flex h-48 items-center justify-center bg-gradient-to-t from-primary/12 to-transparent">
@@ -223,7 +223,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                       </div>
                     )}
                   </div>
-                  <div className="-mt-4 min-w-0">
+                  <div className="mt-1 min-w-0">
                     <h2 className="truncate text-2xl font-black tracking-tight group-hover:text-primary">{player.name}</h2>
                     <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{player.nickname || "Arena contender"}</p>
                   </div>
