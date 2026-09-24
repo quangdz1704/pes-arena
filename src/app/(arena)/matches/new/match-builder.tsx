@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useId, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Dices,
   Gamepad2,
   RefreshCw,
+  Search,
   Shuffle,
   Swords,
   UsersRound,
@@ -15,13 +16,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { initialActionState } from "@/lib/action-state";
 import type {
   MatchPlayerDto,
@@ -64,6 +58,73 @@ function StartMatchButton({ disabled }: { disabled: boolean }) {
       <Gamepad2 className="size-5" />
       {pending ? "Đang bắt đầu..." : "BẮT ĐẦU TRẬN"}
     </Button>
+  );
+}
+
+function TeamSearchSelect({
+  label,
+  teams,
+  selectedTeamId,
+  unavailableTeamId,
+  onSelect,
+}: {
+  label: string;
+  teams: MatchTeamDto[];
+  selectedTeamId: string | undefined;
+  unavailableTeamId: string | undefined;
+  onSelect: (teamId: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const listboxId = useId();
+  const selectedTeam = teams.find((team) => team.id === selectedTeamId);
+  const normalizedQuery = query.trim().toLocaleLowerCase("vi");
+  const visibleTeams = teams.filter((team) =>
+    `${team.name} ${team.shortName} ${team.tier}`.toLocaleLowerCase("vi").includes(normalizedQuery),
+  ).slice(0, 40);
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-label={`Tìm đội cho Side ${label}`}
+          className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none ring-ring/50 placeholder:text-muted-foreground focus-visible:ring-3"
+          onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
+          onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+          onFocus={() => { setQuery(""); setOpen(true); }}
+          placeholder={selectedTeam ? selectedTeam.name : `Tìm đội cho Side ${label}`}
+          role="combobox"
+          value={query}
+        />
+      </div>
+      {selectedTeam && !open ? <p className="mt-1 truncate text-xs text-muted-foreground">Đã chọn: {selectedTeam.name} · Tier {selectedTeam.tier} · {selectedTeam.rating}</p> : null}
+      {open ? (
+        <div className="absolute z-30 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border bg-popover p-1 shadow-xl" id={listboxId} role="listbox">
+          {visibleTeams.length ? visibleTeams.map((team) => {
+            const unavailable = team.id === unavailableTeamId;
+            return (
+              <button
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={unavailable}
+                key={team.id}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => { onSelect(team.id); setQuery(""); setOpen(false); }}
+                aria-selected={team.id === selectedTeamId}
+                role="option"
+                type="button"
+              >
+                <span className="font-semibold">{team.name}</span>
+                <span className="text-xs text-muted-foreground">{team.shortName} · Tier {team.tier} · {team.rating}</span>
+              </button>
+            );
+          }) : <p className="px-3 py-4 text-sm text-muted-foreground">Không tìm thấy đội phù hợp.</p>}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -485,25 +546,13 @@ export function MatchBuilder({
                     <p className="mb-2 text-xs font-bold tracking-[0.18em] text-muted-foreground">
                       SIDE {sideLabel}
                     </p>
-                    <Select
-                      onValueChange={(teamId) => selectManualTeam(sideIndex, teamId)}
-                      value={teamIds?.[sideIndex]}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={`Chọn đội cho Side ${sideLabel}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {selectedPool?.teams.map((team) => (
-                          <SelectItem
-                            disabled={team.id === otherTeamId}
-                            key={team.id}
-                            value={team.id}
-                          >
-                            {team.name} · Tier {team.tier} · {team.rating}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <TeamSearchSelect
+                      label={sideLabel}
+                      onSelect={(teamId) => selectManualTeam(sideIndex, teamId)}
+                      selectedTeamId={teamIds?.[sideIndex]}
+                      teams={selectedPool?.teams ?? []}
+                      unavailableTeamId={otherTeamId}
+                    />
                   </div>
                 );
               })}
