@@ -207,13 +207,13 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                 </div>
 
                 <Link href={`/players/${player.id}`} className="mt-2 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <div className="relative h-52 w-full overflow-hidden">
+                  <div className="relative h-52 w-full">
                     {player.avatarUrl ? (
                       <>
                         {/* Avatar URLs are user-managed and may use arbitrary validated hosts. */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img aria-hidden alt="" className="absolute -inset-10 size-[calc(100%+5rem)] scale-125 object-cover object-top opacity-30 blur-3xl" src={player.avatarUrl} />
-                        <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[#101419]/10 via-[#101419]/35 to-[#101419]" />
+                        <img aria-hidden alt="" className="player-card-portrait-backdrop absolute -inset-10 size-[calc(100%+5rem)] scale-125 object-cover object-top opacity-30 blur-3xl" src={player.avatarUrl} />
+                        <div aria-hidden className="player-card-portrait-vignette absolute -inset-10" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto h-48 w-40 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
                       </>
