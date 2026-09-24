@@ -35,6 +35,20 @@ export async function listPlayerRecords(): Promise<PlayerDto[]> {
   }));
 }
 
+export async function getPlayerRecord(id: string): Promise<PlayerDto | null> {
+  const [player] = await getDb().select().from(players).where(eq(players.id, id));
+  return player
+    ? {
+        id: player.id,
+        name: player.name,
+        nickname: player.nickname,
+        avatarUrl: player.avatarUrl,
+        isActive: player.isActive,
+        createdAt: player.createdAt.toISOString(),
+      }
+    : null;
+}
+
 export async function createPlayerRecord(values: PlayerValues) {
   const [player] = await getDb().insert(players).values(values).returning({
     id: players.id,

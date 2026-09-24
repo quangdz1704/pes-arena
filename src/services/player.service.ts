@@ -4,10 +4,14 @@ import { z } from "zod";
 
 import {
   createPlayerRecord,
+  getPlayerRecord,
   listPlayerRecords,
   setPlayerActiveRecord,
   updatePlayerRecord,
 } from "@/repositories/player.repository";
+import { listLeaderboardMatchRows } from "@/repositories/match.repository";
+
+import { buildPlayerProfileStats } from "./player-profile";
 
 const optionalUrl = z
   .string()
@@ -42,6 +46,18 @@ export type PlayerInput = z.infer<typeof playerInputSchema>;
 
 export async function listPlayers() {
   return listPlayerRecords();
+}
+
+export async function getPlayer(id: string) {
+  return getPlayerRecord(id);
+}
+
+export async function getPlayerProfile(id: string) {
+  const [player, rows] = await Promise.all([
+    getPlayerRecord(id),
+    listLeaderboardMatchRows({ matchMode: "ALL", startDate: null }),
+  ]);
+  return player ? { player, stats: buildPlayerProfileStats(player.id, rows) } : null;
 }
 
 export async function savePlayer(input: PlayerInput) {

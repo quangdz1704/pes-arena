@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
+import Link from "next/link";
 import { Pencil, Plus, Power, Search, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
@@ -188,7 +189,7 @@ export function PlayerManager({ players }: { players: PlayerDto[] }) {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h2 className="truncate font-bold">{player.name}</h2>
+                    <Link className="truncate font-bold hover:text-primary" href={`/players/${player.id}`}>{player.name}</Link>
                     <Badge variant={player.isActive ? "default" : "secondary"}>
                       {player.isActive ? "Đang chơi" : "Tạm nghỉ"}
                     </Badge>
@@ -198,6 +199,9 @@ export function PlayerManager({ players }: { players: PlayerDto[] }) {
                   </p>
                 </div>
                 <div className="flex items-center">
+                  <Button asChild variant="ghost" size="icon-sm" aria-label={`Xem hồ sơ ${player.name}`}>
+                    <Link href={`/players/${player.id}`}>↗</Link>
+                  </Button>
                   <PlayerDialog player={player} />
                   <form action={setPlayerActiveAction}>
                     <input type="hidden" name="id" value={player.id} />
