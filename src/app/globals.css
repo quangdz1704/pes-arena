@@ -141,16 +141,6 @@
   mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
 
-.player-card-portrait {
-  mask-image: linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 90%) 12%, black 30%, black 68%, transparent 100%);
-}
-
-.player-card-avatar-art {
-  filter: blur(32px) saturate(0.8);
-  mask-image: radial-gradient(ellipse 70% 58% at 50% 42%, black 8%, rgb(0 0 0 / 55%) 58%, transparent 100%);
-  transform: scale(1.1);
-}
-
 .leaderboard-mobile-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

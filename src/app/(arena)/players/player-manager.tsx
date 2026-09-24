@@ -3,9 +3,10 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Crown, Pencil, Plus, Power, Search, Swords, UserRound } from "lucide-react";
+import { Pencil, Plus, Power, Search, Swords, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -179,20 +180,13 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredPlayers.map((player) => (
-            <Card key={player.id} className="group relative isolate min-h-[450px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
-              {player.avatarUrl ? (
-                <>
-                  {/* Avatar URLs are user-managed and may use arbitrary validated hosts. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img aria-hidden alt="" className="player-card-avatar-art absolute -inset-16 size-[calc(100%+8rem)] object-cover object-top opacity-25" src={player.avatarUrl} />
-                </>
-              ) : null}
+            <Card key={player.id} className="group relative isolate min-h-[390px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
               <div aria-hidden className="player-card-grid absolute inset-0 opacity-60" />
               <div aria-hidden className="absolute -right-14 -top-12 size-48 rounded-full bg-primary/12 blur-3xl transition duration-500 group-hover:bg-primary/20" />
               <CardContent className="relative flex h-full flex-col p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-4xl font-black leading-none tracking-tighter text-primary">{player.points}</p>
+                    <p className="text-3xl font-black leading-none tracking-tighter text-primary">{player.points}</p>
                     <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Điểm arena</p>
                   </div>
                   <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1 backdrop-blur-sm">
@@ -213,37 +207,35 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   </div>
                 </div>
 
-                <Link href={`/players/${player.id}`} className="mt-2 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <div className="relative -mx-4 h-56 w-[calc(100%+2rem)]">
-                    {player.avatarUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img alt={player.name} className="player-card-portrait absolute inset-0 size-full object-cover object-top transition duration-500 group-hover:scale-[1.03]" src={player.avatarUrl} />
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-primary/10 to-transparent">
-                        <span className="text-8xl font-black tracking-tighter text-primary/85">{initials(player.name)}</span>
-                      </div>
-                    )}
+                <Link href={`/players/${player.id}`} className="mt-1 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <div className="relative flex h-44 w-full items-center justify-center">
+                    <div aria-hidden className="absolute size-40 rounded-full bg-primary/10 shadow-[0_0_36px_rgba(106,255,148,0.14)] sm:size-44" />
+                    <Avatar size="default" className="relative size-36 border-[3px] border-primary/55 bg-[#101419] shadow-[0_0_0_7px_rgba(106,255,148,0.07)] transition duration-300 group-hover:scale-[1.03] group-hover:border-primary sm:size-40">
+                      <AvatarImage alt={player.name} className="object-cover object-center" src={player.avatarUrl ?? undefined} />
+                      <AvatarFallback className="bg-primary/10 text-5xl font-black text-primary">
+                        {initials(player.name)}
+                      </AvatarFallback>
+                    </Avatar>
                   </div>
-                  <div className="mt-1 min-w-0">
-                    <h2 className="truncate text-2xl font-black tracking-tight group-hover:text-primary">{player.name}</h2>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-xl font-black tracking-tight group-hover:text-primary">{player.name}</h2>
                     <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{player.nickname || "Arena contender"}</p>
                   </div>
-                  <div className="mt-4 flex items-center justify-center gap-2">
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                     <Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang thi đấu" : "Tạm nghỉ"}</Badge>
                     <Badge variant="outline" className="border-white/12 bg-background/35 text-foreground">Hạng #{player.rank}</Badge>
+                    {player.stats.currentStreak > 0 ? (
+                      <Badge variant="outline" className="gap-1 border-primary/25 bg-primary/5 text-primary">
+                        <Swords className="size-3" /> {player.stats.currentStreak}W
+                      </Badge>
+                    ) : null}
                   </div>
                 </Link>
 
-                <div className="mt-5 grid grid-cols-3 divide-x divide-white/10 rounded-xl border border-white/10 bg-black/20 py-3 text-center">
+                <div className="mt-4 grid grid-cols-3 divide-x divide-white/10 rounded-xl border border-white/10 bg-black/20 py-2.5 text-center">
                   <CardStat label="Trận" value={player.stats.matches} />
                   <CardStat label="Thắng" value={player.stats.wins} tone="text-primary" />
                   <CardStat label="Winrate" value={`${player.stats.winRate}%`} />
-                </div>
-                <div className="mt-4 flex items-center justify-between text-xs font-bold text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><Crown className="size-3.5 text-primary" /> Hồ sơ chiến hữu</span>
-                  <span className={player.stats.currentStreak > 0 ? "flex items-center gap-1 text-primary" : "flex items-center gap-1"}><Swords className="size-3.5" /> {player.stats.currentStreak > 0 ? `${player.stats.currentStreak}W` : "—"}</span>
                 </div>
               </CardContent>
             </Card>
