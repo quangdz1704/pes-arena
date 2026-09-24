@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
+import { cancelTournamentRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
 
 export const createLeagueSchema = z.object({
   name: z.string().trim().min(3).max(150),
@@ -27,4 +27,7 @@ export async function getTournament(tournamentId: string) {
 export async function getTournamentFixtureForStart(fixtureId: string) {
   if (!z.uuid().safeParse(fixtureId).success) return null;
   return getTournamentFixtureForMatchStart(fixtureId);
+}
+export async function cancelTournament(tournamentId: string) {
+  return cancelTournamentRecord(z.uuid().parse(tournamentId));
 }

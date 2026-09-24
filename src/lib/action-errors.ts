@@ -31,6 +31,9 @@ export function toActionError(error: unknown): ActionState {
       "Đội bóng phải thuộc nhóm đội đã chọn.",
       "Hai đội cân bằng cần cùng tier hoặc có rating gần nhau.",
       "Trận đấu không tồn tại hoặc đã được lưu kết quả.",
+      "Không thể huỷ giải khi vẫn còn trận đang diễn ra.",
+      "Giải đấu không tồn tại hoặc không còn diễn ra.",
+      "Giải đấu này không còn diễn ra.",
     ]);
 
     if (safeMessages.has(error.message)) {

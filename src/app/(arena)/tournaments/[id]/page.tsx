@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
 import { getTournament } from "@/services/tournament.service";
 
+import { CancelTournamentButton } from "./cancel-tournament-button";
+
 export const dynamic = "force-dynamic";
 
 export default async function TournamentDetailPage({
@@ -51,6 +53,7 @@ export default async function TournamentDetailPage({
           eyebrow="League 1v1"
           title={tournament.name}
           description={`${tournament.competitors.length} đối thủ · ${tournament.fixtures.length} trận · ${tournament.status}`}
+          action={tournament.status === "ACTIVE" ? <CancelTournamentButton tournamentId={tournament.id} /> : undefined}
         />
       </div>
 
@@ -91,10 +94,12 @@ export default async function TournamentDetailPage({
                       <Link className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground" href={`/matches/${fixture.matchId}`}>
                         {fixture.matchStatus === "FINISHED" ? `${fixture.homeScore} - ${fixture.awayScore}` : "Vào trận"}
                       </Link>
-                    ) : (
+                    ) : tournament.status === "ACTIVE" ? (
                       <Link className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground" href={`/matches/new?fixture=${fixture.id}`}>
                         Bắt đầu trận
                       </Link>
+                    ) : (
+                      <span className="shrink-0 rounded-full bg-muted px-3 py-1 text-xs font-bold text-muted-foreground">Đã huỷ</span>
                     )}
                   </div>
                 ))}

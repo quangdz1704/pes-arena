@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import { getDb } from "@/db";
@@ -47,6 +47,27 @@ export async function finishTournamentIfComplete(tournamentId: string) {
           and (match.status is distinct from 'FINISHED'::match_status)
       )
   `);
+}
+
+export async function cancelTournamentRecord(tournamentId: string) {
+  const db = getDb();
+  const [activeMatch] = await db
+    .select({ id: matches.id })
+    .from(matches)
+    .where(and(eq(matches.tournamentId, tournamentId), eq(matches.status, "PLAYING")))
+    .limit(1);
+  if (activeMatch) {
+    throw new Error("Không thể huỷ giải khi vẫn còn trận đang diễn ra.");
+  }
+
+  const cancelled = await db
+    .update(tournaments)
+    .set({ status: "CANCELLED", updatedAt: new Date() })
+    .where(and(eq(tournaments.id, tournamentId), eq(tournaments.status, "ACTIVE")))
+    .returning({ id: tournaments.id });
+  if (!cancelled[0]) {
+    throw new Error("Giải đấu không tồn tại hoặc không còn diễn ra.");
+  }
 }
 
 export async function listTournamentRecords() {
@@ -147,7 +168,7 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
     .where(eq(tournamentFixtures.id, fixtureId));
   if (!fixture) return null;
   const [tournament] = await db
-    .select({ matchMode: tournaments.matchMode })
+    .select({ matchMode: tournaments.matchMode, status: tournaments.status })
     .from(tournaments)
     .where(eq(tournaments.id, fixture.tournamentId));
   if (!tournament) return null;
@@ -170,6 +191,7 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
     id: fixture.id,
     tournamentId: fixture.tournamentId,
     matchMode: tournament.matchMode,
+    tournamentStatus: tournament.status,
     matchId: fixture.matchId,
     homePlayerIds: homePlayers.map((player) => player.playerId),
     awayPlayerIds: awayPlayers.map((player) => player.playerId),

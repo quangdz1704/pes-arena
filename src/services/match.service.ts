@@ -89,6 +89,9 @@ export async function startMatch(input: StartMatchInput) {
     if (!fixture || fixture.matchId) {
       throw new Error("Lịch đấu không tồn tại hoặc đã được bắt đầu.");
     }
+    if (fixture.tournamentStatus !== "ACTIVE") {
+      throw new Error("Giải đấu này không còn diễn ra.");
+    }
     if (input.composition.matchMode !== fixture.matchMode) {
       throw new Error("Chế độ trận không khớp với giải đấu.");
     }
