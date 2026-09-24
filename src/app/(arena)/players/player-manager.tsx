@@ -218,7 +218,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                     {player.avatarUrl ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto h-48 w-40 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
+                        <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto size-52 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
                       </>
                     ) : (
                       <div className="absolute inset-x-0 bottom-0 flex h-48 items-center justify-center bg-gradient-to-t from-primary/12 to-transparent">
