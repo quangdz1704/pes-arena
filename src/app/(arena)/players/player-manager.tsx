@@ -214,14 +214,14 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                 </div>
 
                 <Link href={`/players/${player.id}`} className="mt-2 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <div className="relative h-52 w-full">
+                  <div className="relative -mx-4 h-56 w-[calc(100%+2rem)]">
                     {player.avatarUrl ? (
                       <>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto size-52 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
+                        <img alt={player.name} className="player-card-portrait absolute inset-0 size-full object-cover object-top transition duration-500 group-hover:scale-[1.03]" src={player.avatarUrl} />
                       </>
                     ) : (
-                      <div className="absolute inset-x-0 bottom-0 flex h-48 items-center justify-center bg-gradient-to-t from-primary/12 to-transparent">
+                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-primary/10 to-transparent">
                         <span className="text-8xl font-black tracking-tighter text-primary/85">{initials(player.name)}</span>
                       </div>
                     )}

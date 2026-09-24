@@ -142,7 +142,7 @@
 }
 
 .player-card-portrait {
-  mask-image: radial-gradient(ellipse at 50% 44%, black 30%, rgb(0 0 0 / 88%) 52%, rgb(0 0 0 / 42%) 66%, transparent 82%);
+  mask-image: linear-gradient(to bottom, transparent 0%, rgb(0 0 0 / 90%) 12%, black 30%, black 68%, transparent 100%);
 }
 
 .player-card-avatar-art {
