@@ -4,6 +4,11 @@ import { Crown, Medal, Swords, Trophy } from "lucide-react";
 import { DatabaseSetupNotice } from "@/components/shared/database-setup-notice";
 import { PageHeading } from "@/components/shared/page-heading";
 import { Badge } from "@/components/ui/badge";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -43,6 +48,15 @@ const sorts = [
   ["MATCHES", "Số trận"],
   ["GF", "GF"],
 ] as const satisfies readonly [LeaderboardSort, string][];
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .slice(-2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
 
 function readFilter<T extends string>(value: string | undefined, allowed: readonly T[], fallback: T) {
   return value && allowed.includes(value as T) ? (value as T) : fallback;
@@ -104,10 +118,16 @@ export default async function LeaderboardPage({
                     <Card key={entry.playerId} className={index === 0 ? "border-primary/40 bg-primary/8" : "border-white/10 bg-card/80"}>
                       <CardContent className="flex items-center gap-4 p-5">
                         <Icon className={index === 0 ? "size-8 text-primary" : "size-7 text-amber-300"} />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">HẠNG {entry.rank}</p>
-                          <p className="truncate text-lg font-black">{entry.playerName}</p>
-                          <p className="text-sm text-muted-foreground">{entry.points} điểm · {entry.winRate}% winrate</p>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar>
+                            <AvatarImage alt={entry.playerName} src={entry.avatarUrl ?? undefined} />
+                            <AvatarFallback className="bg-primary/10 font-bold text-primary">{initials(entry.playerName)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">HẠNG {entry.rank}</p>
+                            <p className="truncate text-lg font-black">{entry.playerName}</p>
+                            <p className="text-sm text-muted-foreground">{entry.points} điểm · {entry.winRate}% winrate</p>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -120,7 +140,16 @@ export default async function LeaderboardPage({
                   <Card className="border-white/10 bg-card/80" key={entry.playerId}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0"><p className="text-xs font-bold tracking-[0.16em] text-primary">HẠNG {entry.rank}</p><p className="truncate text-lg font-black">{entry.playerName}</p></div>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <Avatar>
+                            <AvatarImage alt={entry.playerName} src={entry.avatarUrl ?? undefined} />
+                            <AvatarFallback className="bg-primary/10 font-bold text-primary">{initials(entry.playerName)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold tracking-[0.16em] text-primary">HẠNG {entry.rank}</p>
+                            <p className="truncate text-lg font-black">{entry.playerName}</p>
+                          </div>
+                        </div>
                         <div className="shrink-0 rounded-lg bg-primary/10 px-3 py-1 text-right"><p className="font-black text-primary">{entry.points}</p><p className="text-xs text-muted-foreground">điểm</p></div>
                       </div>
                       <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Điểm" tone="text-primary" value={entry.points} /><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
@@ -134,15 +163,15 @@ export default async function LeaderboardPage({
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead className="bg-primary/12 text-primary">Điểm</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
+                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead className="rounded-t-lg bg-primary/12 text-primary">Điểm</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {entries.map((entry) => (
+                        {entries.map((entry, index) => (
                           <TableRow key={entry.playerId}>
                             <TableCell className="font-black text-primary">{entry.rank}</TableCell>
-                            <TableCell className="font-bold">{entry.playerName}</TableCell>
-                            <TableCell className="bg-primary/8 font-black text-primary">{entry.points}</TableCell>
+                            <TableCell className="font-bold"><div className="flex items-center gap-2"><Avatar size="sm"><AvatarImage alt={entry.playerName} src={entry.avatarUrl ?? undefined} /><AvatarFallback className="bg-primary/10 font-bold text-primary">{initials(entry.playerName)}</AvatarFallback></Avatar><span>{entry.playerName}</span></div></TableCell>
+                            <TableCell className={`bg-primary/8 font-black text-primary ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}>{entry.points}</TableCell>
                             <TableCell>{entry.matches}</TableCell><TableCell>{entry.wins}</TableCell><TableCell>{entry.draws}</TableCell><TableCell>{entry.losses}</TableCell>
                             <TableCell>{entry.winRate}%</TableCell><TableCell>{entry.goalsFor}</TableCell><TableCell>{entry.goalsAgainst}</TableCell>
                             <TableCell className={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined}>{entry.goalDifference > 0 ? "+" : ""}{entry.goalDifference}</TableCell>

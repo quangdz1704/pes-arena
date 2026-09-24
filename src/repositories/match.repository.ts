@@ -378,6 +378,7 @@ export async function listLeaderboardMatchRows({
       playedAt: matches.playedAt,
       playerId: players.id,
       playerName: players.name,
+      playerAvatarUrl: players.avatarUrl,
       side: matchSides.side,
       score: matchSides.score,
     })

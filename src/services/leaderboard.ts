@@ -8,6 +8,7 @@ export type LeaderboardMatchRow = {
   playedAt: Date | null;
   playerId: string;
   playerName: string;
+  playerAvatarUrl?: string | null;
   side: "A" | "B";
   score: number | null;
 };
@@ -16,6 +17,7 @@ export type LeaderboardEntry = {
   rank: number;
   playerId: string;
   playerName: string;
+  avatarUrl: string | null;
   matches: number;
   wins: number;
   draws: number;
@@ -88,6 +90,7 @@ export function buildLeaderboard(
       const entry = entries.get(row.playerId) ?? {
         playerId: row.playerId,
         playerName: row.playerName,
+        avatarUrl: row.playerAvatarUrl ?? null,
         matches: 0,
         wins: 0,
         draws: 0,
