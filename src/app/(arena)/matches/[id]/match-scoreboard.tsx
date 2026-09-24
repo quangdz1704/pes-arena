@@ -18,9 +18,9 @@ import { saveMatchScoreAction, updateMatchScoreAction } from "../actions";
 
 function SideIdentity({ side }: { side: MatchSideDto }) {
   return (
-    <div className="space-y-1 text-center">
-      <p className="text-lg font-black">{side.players.map((player) => player.name).join(" + ")}</p>
-      <p className="text-sm text-muted-foreground">{side.team?.name ?? "Chưa chọn đội"}</p>
+    <div className="min-w-0 space-y-1 text-center">
+      <p className="break-words text-base font-black sm:text-lg">{side.players.map((player) => player.name).join(" + ")}</p>
+      <p className="truncate text-sm text-muted-foreground">{side.team?.name ?? "Chưa chọn đội"}</p>
       {side.team ? <Badge variant="outline">Tier {side.team.tier} · {side.team.rating}</Badge> : null}
     </div>
   );

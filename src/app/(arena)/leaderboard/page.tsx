@@ -114,7 +114,20 @@ export default async function LeaderboardPage({
                 })}
               </section>
 
-              <Card className="border-white/10 bg-card/80">
+              <div className="space-y-3 md:hidden">
+                {entries.map((entry) => (
+                  <Card className="border-white/10 bg-card/80" key={entry.playerId}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0"><p className="text-xs font-bold tracking-[0.16em] text-primary">HẠNG {entry.rank}</p><p className="truncate text-lg font-black">{entry.playerName}</p></div>
+                        <div className="shrink-0 text-right"><p className="font-black">{entry.winRate}%</p><p className="text-xs text-muted-foreground">winrate</p></div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-4 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GF / GA" value={`${entry.goalsFor} / ${entry.goalsAgainst}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <Card className="hidden border-white/10 bg-card/80 md:block">
                 <CardContent className="p-0">
                   <Table>
                     <TableHeader>
@@ -166,4 +179,8 @@ function FilterGroup<T extends string>({
       ))}
     </div>
   );
+}
+
+function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+  return <div className="min-w-0"><p className={`truncate font-bold ${tone ?? ""}`}>{value}</p><p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p></div>;
 }

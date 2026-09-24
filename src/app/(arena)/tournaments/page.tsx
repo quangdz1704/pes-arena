@@ -22,14 +22,14 @@ export default async function TournamentsPage() {
       {items.map((tournament) => (
         <Link className="block" href={`/tournaments/${tournament.id}`} key={tournament.id}>
           <Card className="transition-colors hover:border-primary">
-            <CardContent className="flex items-center justify-between p-5">
-              <div>
-                <p className="font-black">{tournament.name}</p>
-                <p className="text-sm text-muted-foreground">
+            <CardContent className="flex items-center justify-between gap-3 p-5">
+              <div className="min-w-0">
+                <p className="truncate font-black">{tournament.name}</p>
+                <p className="truncate text-sm text-muted-foreground">
                   {tournament.type === "KNOCKOUT" ? "Knockout" : "League"} · {tournament.competitors.length} đối thủ · {tournament.fixtures.length} trận · {tournament.status}
                 </p>
               </div>
-              <span className="text-sm font-bold text-primary">Xem chi tiết →</span>
+              <span className="shrink-0 whitespace-nowrap text-sm font-bold text-primary">Xem <span className="hidden sm:inline">chi tiết </span>→</span>
             </CardContent>
           </Card>
         </Link>

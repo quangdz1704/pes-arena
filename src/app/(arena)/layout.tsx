@@ -12,7 +12,7 @@ export default function ArenaLayout({ children }: LayoutProps<"/">) {
       </a>
       <DesktopSidebar />
       <MobileHeader />
-      <main className="min-h-screen px-4 pb-28 pt-6 sm:px-6 lg:ml-72 lg:px-10 lg:pb-10 lg:pt-10" id="main-content" tabIndex={-1}>
+      <main className="min-h-screen px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:ml-72 lg:px-10 lg:pb-10 lg:pt-10" id="main-content" tabIndex={-1}>
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
       <MobileBottomNav />
