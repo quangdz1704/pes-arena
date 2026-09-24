@@ -180,6 +180,13 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredPlayers.map((player) => (
             <Card key={player.id} className="group relative isolate min-h-[450px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+              {player.avatarUrl ? (
+                <>
+                  {/* Avatar URLs are user-managed and may use arbitrary validated hosts. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img aria-hidden alt="" className="player-card-avatar-art absolute -inset-16 size-[calc(100%+8rem)] object-cover object-top opacity-25" src={player.avatarUrl} />
+                </>
+              ) : null}
               <div aria-hidden className="player-card-grid absolute inset-0 opacity-60" />
               <div aria-hidden className="absolute -right-14 -top-12 size-48 rounded-full bg-primary/12 blur-3xl transition duration-500 group-hover:bg-primary/20" />
               <CardContent className="relative flex h-full flex-col p-4">
@@ -210,10 +217,6 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   <div className="relative h-52 w-full">
                     {player.avatarUrl ? (
                       <>
-                        {/* Avatar URLs are user-managed and may use arbitrary validated hosts. */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img aria-hidden alt="" className="player-card-portrait-backdrop absolute -inset-10 size-[calc(100%+5rem)] scale-125 object-cover object-top opacity-30 blur-3xl" src={player.avatarUrl} />
-                        <div aria-hidden className="player-card-portrait-vignette absolute -inset-10" />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img alt={player.name} className="player-card-portrait absolute inset-x-0 bottom-0 mx-auto h-48 w-40 object-cover object-top transition duration-500 group-hover:scale-105" src={player.avatarUrl} />
                       </>

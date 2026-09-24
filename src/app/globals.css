@@ -147,12 +147,10 @@
   mask-image: linear-gradient(to bottom, black 58%, rgb(0 0 0 / 92%) 70%, transparent 100%);
 }
 
-.player-card-portrait-backdrop {
-  mask-image: radial-gradient(ellipse 62% 66% at 50% 44%, black 12%, rgb(0 0 0 / 65%) 58%, transparent 100%);
-}
-
-.player-card-portrait-vignette {
-  background: radial-gradient(ellipse 58% 64% at 50% 42%, transparent 18%, rgb(16 20 25 / 55%) 72%, #101419 100%);
+.player-card-avatar-art {
+  filter: blur(32px) saturate(0.8);
+  mask-image: radial-gradient(ellipse 70% 58% at 50% 42%, black 8%, rgb(0 0 0 / 55%) 58%, transparent 100%);
+  transform: scale(1.1);
 }
 
 .leaderboard-mobile-stats {
