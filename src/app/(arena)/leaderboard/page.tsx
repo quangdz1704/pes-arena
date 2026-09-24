@@ -37,6 +37,7 @@ const modes = [
 ] as const satisfies readonly [LeaderboardMatchMode, string][];
 
 const sorts = [
+  ["POINTS", "Điểm"],
   ["WINS", "Thắng"],
   ["WINRATE", "Winrate"],
   ["MATCHES", "Số trận"],
@@ -106,7 +107,7 @@ export default async function LeaderboardPage({
                         <div className="min-w-0">
                           <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">HẠNG {entry.rank}</p>
                           <p className="truncate text-lg font-black">{entry.playerName}</p>
-                          <p className="text-sm text-muted-foreground">{entry.wins} thắng · {entry.winRate}% winrate</p>
+                          <p className="text-sm text-muted-foreground">{entry.points} điểm · {entry.winRate}% winrate</p>
                         </div>
                       </CardContent>
                     </Card>
@@ -120,9 +121,9 @@ export default async function LeaderboardPage({
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0"><p className="text-xs font-bold tracking-[0.16em] text-primary">HẠNG {entry.rank}</p><p className="truncate text-lg font-black">{entry.playerName}</p></div>
-                        <div className="shrink-0 text-right"><p className="font-black">{entry.winRate}%</p><p className="text-xs text-muted-foreground">winrate</p></div>
+                        <div className="shrink-0 rounded-lg bg-primary/10 px-3 py-1 text-right"><p className="font-black text-primary">{entry.points}</p><p className="text-xs text-muted-foreground">điểm</p></div>
                       </div>
-                      <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GF / GA" value={`${entry.goalsFor} / ${entry.goalsAgainst}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
+                      <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Điểm" tone="text-primary" value={entry.points} /><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -133,7 +134,7 @@ export default async function LeaderboardPage({
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
+                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead className="bg-primary/12 text-primary">Điểm</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -141,6 +142,7 @@ export default async function LeaderboardPage({
                           <TableRow key={entry.playerId}>
                             <TableCell className="font-black text-primary">{entry.rank}</TableCell>
                             <TableCell className="font-bold">{entry.playerName}</TableCell>
+                            <TableCell className="bg-primary/8 font-black text-primary">{entry.points}</TableCell>
                             <TableCell>{entry.matches}</TableCell><TableCell>{entry.wins}</TableCell><TableCell>{entry.draws}</TableCell><TableCell>{entry.losses}</TableCell>
                             <TableCell>{entry.winRate}%</TableCell><TableCell>{entry.goalsFor}</TableCell><TableCell>{entry.goalsAgainst}</TableCell>
                             <TableCell className={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined}>{entry.goalDifference > 0 ? "+" : ""}{entry.goalDifference}</TableCell>

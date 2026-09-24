@@ -22,4 +22,21 @@ describe("leaderboard", () => {
     expect(getLeaderboardStartDate("DAY", new Date("2026-09-20T18:00:00Z"))?.toISOString()).toBe("2026-09-20T17:00:00.000Z");
     expect(getLeaderboardStartDate("SEVEN_DAYS", new Date("2026-09-20T18:00:00Z"))?.toISOString()).toBe("2026-09-14T17:00:00.000Z");
   });
+
+  it("awards three points for a win, one for a draw, and can sort by points", () => {
+    const entries = buildLeaderboard(
+      [
+        { matchId: "m1", matchMode: "ONE_V_ONE", playedAt: new Date("2026-09-20T12:00:00Z"), playerId: "a", playerName: "An", side: "A", score: 2 },
+        { matchId: "m1", matchMode: "ONE_V_ONE", playedAt: new Date("2026-09-20T12:00:00Z"), playerId: "b", playerName: "Bình", side: "B", score: 0 },
+        { matchId: "m2", matchMode: "ONE_V_ONE", playedAt: new Date("2026-09-21T12:00:00Z"), playerId: "a", playerName: "An", side: "A", score: 1 },
+        { matchId: "m2", matchMode: "ONE_V_ONE", playedAt: new Date("2026-09-21T12:00:00Z"), playerId: "b", playerName: "Bình", side: "B", score: 1 },
+      ],
+      "POINTS",
+    );
+
+    expect(entries.map((entry) => ({ playerId: entry.playerId, points: entry.points }))).toEqual([
+      { playerId: "a", points: 4 },
+      { playerId: "b", points: 1 },
+    ]);
+  });
 });

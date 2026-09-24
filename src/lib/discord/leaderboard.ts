@@ -4,7 +4,7 @@ export type DiscordLeaderboardResult = "sent" | "not_configured" | "failed" | "e
 
 export function createLeaderboardDiscordPayload(entries: LeaderboardEntry[], title: string) {
   const ranking = entries.slice(0, 10).map((entry) =>
-    `**${entry.rank}. ${entry.playerName}** — ${entry.wins}W · ${entry.winRate}% WR · GD ${entry.goalDifference >= 0 ? "+" : ""}${entry.goalDifference}`,
+    `**${entry.rank}. ${entry.playerName}** — **${entry.points} điểm** · ${entry.wins}W · ${entry.winRate}% WR · GD ${entry.goalDifference >= 0 ? "+" : ""}${entry.goalDifference}`,
   ).join("\n");
 
   return {

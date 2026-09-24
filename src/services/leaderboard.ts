@@ -1,6 +1,6 @@
 export type LeaderboardPeriod = "ALL" | "DAY" | "SEVEN_DAYS" | "THIRTY_DAYS";
 export type LeaderboardMatchMode = "ALL" | "ONE_V_ONE" | "TWO_V_TWO";
-export type LeaderboardSort = "WINS" | "WINRATE" | "MATCHES" | "GF";
+export type LeaderboardSort = "POINTS" | "WINS" | "WINRATE" | "MATCHES" | "GF";
 
 export type LeaderboardMatchRow = {
   matchId: string;
@@ -20,6 +20,7 @@ export type LeaderboardEntry = {
   wins: number;
   draws: number;
   losses: number;
+  points: number;
   winRate: number;
   goalsFor: number;
   goalsAgainst: number;
@@ -91,6 +92,7 @@ export function buildLeaderboard(
         wins: 0,
         draws: 0,
         losses: 0,
+        points: 0,
         goalsFor: 0,
         goalsAgainst: 0,
         currentStreak: 0,
@@ -99,8 +101,14 @@ export function buildLeaderboard(
       entry.matches += 1;
       entry.goalsFor += score;
       entry.goalsAgainst += opponentScore;
-      if (outcome > 0) entry.wins += 1;
-      if (outcome === 0) entry.draws += 1;
+      if (outcome > 0) {
+        entry.wins += 1;
+        entry.points += 3;
+      }
+      if (outcome === 0) {
+        entry.draws += 1;
+        entry.points += 1;
+      }
       if (outcome < 0) entry.losses += 1;
 
       const nextStreak = outcome > 0 ? (streaks.get(row.playerId) ?? 0) + 1 : 0;
@@ -111,6 +119,7 @@ export function buildLeaderboard(
   }
 
   const comparisonBySort: Record<LeaderboardSort, (entry: LeaderboardEntry) => number> = {
+    POINTS: (entry) => entry.points,
     WINS: (entry) => entry.wins,
     WINRATE: (entry) => entry.winRate,
     MATCHES: (entry) => entry.matches,
@@ -128,6 +137,7 @@ export function buildLeaderboard(
       const mainDifference = comparisonBySort[sort](second) - comparisonBySort[sort](first);
       if (mainDifference !== 0) return mainDifference;
       if (second.wins !== first.wins) return second.wins - first.wins;
+      if (second.draws !== first.draws) return second.draws - first.draws;
       if (second.goalDifference !== first.goalDifference) {
         return second.goalDifference - first.goalDifference;
       }
