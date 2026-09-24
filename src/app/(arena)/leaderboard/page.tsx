@@ -76,7 +76,7 @@ export default async function LeaderboardPage({
   const filters = {
     period: readFilter(params.period, periods.map(([value]) => value), "ALL"),
     matchMode: readFilter(params.mode, modes.map(([value]) => value), "ALL"),
-    sort: readFilter(params.sort, sorts.map(([value]) => value), "WINS"),
+    sort: readFilter(params.sort, sorts.map(([value]) => value), "POINTS"),
   };
   const databaseReady = isDatabaseConfigured();
   const entries = databaseReady ? await getLeaderboard(filters) : [];
