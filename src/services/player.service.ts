@@ -13,6 +13,12 @@ import { listLeaderboardMatchRows } from "@/repositories/match.repository";
 
 import { buildPlayerProfileStats } from "./player-profile";
 
+export type PlayerRosterEntry = Awaited<ReturnType<typeof listPlayers>>[number] & {
+  points: number;
+  rank: number;
+  stats: ReturnType<typeof buildPlayerProfileStats>;
+};
+
 const optionalUrl = z
   .string()
   .trim()
@@ -46,6 +52,24 @@ export type PlayerInput = z.infer<typeof playerInputSchema>;
 
 export async function listPlayers() {
   return listPlayerRecords();
+}
+
+export async function listPlayersWithStats(): Promise<PlayerRosterEntry[]> {
+  const [players, rows] = await Promise.all([
+    listPlayerRecords(),
+    listLeaderboardMatchRows({ matchMode: "ALL", startDate: null }),
+  ]);
+  const entries = players.map((player) => {
+    const stats = buildPlayerProfileStats(player.id, rows);
+    return { ...player, stats, points: stats.wins * 3 + stats.draws };
+  });
+  const ranks = new Map(
+    [...entries]
+      .sort((left, right) => right.points - left.points || right.stats.wins - left.stats.wins || right.stats.goalsFor - left.stats.goalsFor)
+      .map((entry, index) => [entry.id, index + 1]),
+  );
+
+  return entries.map((entry) => ({ ...entry, rank: ranks.get(entry.id) ?? 0 }));
 }
 
 export async function getPlayer(id: string) {

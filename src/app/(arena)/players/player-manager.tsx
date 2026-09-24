@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Pencil, Plus, Power, Search, UserRound } from "lucide-react";
+import { Crown, Pencil, Plus, Power, Search, Swords, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { initialActionState } from "@/lib/action-state";
 import type { PlayerDto } from "@/repositories/player.repository";
+import type { PlayerRosterEntry } from "@/services/player.service";
 
 import { savePlayerAction, setPlayerActiveAction } from "./actions";
 
@@ -129,7 +130,7 @@ export function AddPlayerButton() {
   return <PlayerDialog />;
 }
 
-export function PlayerManager({ players }: { players: PlayerDto[] }) {
+export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
   const [query, setQuery] = useState("");
   const normalizedQuery = query.trim().toLocaleLowerCase("vi");
   const filteredPlayers = players.filter((player) =>
@@ -177,45 +178,60 @@ export function PlayerManager({ players }: { players: PlayerDto[] }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredPlayers.map((player) => (
-            <Card key={player.id} className="border-white/8 bg-card/80">
-              <CardContent className="flex items-center gap-4 py-5">
-                <Avatar className="size-12 border border-white/10">
-                  <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
-                  <AvatarFallback className="bg-primary/10 font-black text-primary">
-                    {initials(player.name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Link className="truncate font-bold hover:text-primary" href={`/players/${player.id}`}>{player.name}</Link>
-                    <Badge variant={player.isActive ? "default" : "secondary"}>
-                      {player.isActive ? "Đang chơi" : "Tạm nghỉ"}
-                    </Badge>
+            <Card key={player.id} className="group relative isolate min-h-[380px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+              <div aria-hidden className="player-card-grid absolute inset-0 opacity-60" />
+              <div aria-hidden className="absolute -right-14 -top-12 size-48 rounded-full bg-primary/12 blur-3xl transition duration-500 group-hover:bg-primary/20" />
+              <CardContent className="relative flex h-full flex-col p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-4xl font-black leading-none tracking-tighter text-primary">{player.points}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Điểm arena</p>
                   </div>
-                  <p className="mt-1 truncate text-sm text-muted-foreground">
-                    {player.nickname || "Chưa có biệt danh"}
-                  </p>
+                  <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1 backdrop-blur-sm">
+                    <PlayerDialog player={player} />
+                    <form action={setPlayerActiveAction}>
+                      <input type="hidden" name="id" value={player.id} />
+                      <input type="hidden" name="isActive" value={String(!player.isActive)} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={player.isActive ? `Tạm ẩn ${player.name}` : `Bật ${player.name}`}
+                        className={player.isActive ? "text-muted-foreground" : "text-primary"}
+                      >
+                        <Power className="size-4" />
+                      </Button>
+                    </form>
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <Button asChild variant="ghost" size="icon-sm" aria-label={`Xem hồ sơ ${player.name}`}>
-                    <Link href={`/players/${player.id}`}>↗</Link>
-                  </Button>
-                  <PlayerDialog player={player} />
-                  <form action={setPlayerActiveAction}>
-                    <input type="hidden" name="id" value={player.id} />
-                    <input type="hidden" name="isActive" value={String(!player.isActive)} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={player.isActive ? `Tạm ẩn ${player.name}` : `Bật ${player.name}`}
-                      className={player.isActive ? "text-muted-foreground" : "text-primary"}
-                    >
-                      <Power className="size-4" />
-                    </Button>
-                  </form>
+
+                <Link href={`/players/${player.id}`} className="mt-4 flex flex-1 flex-col items-center text-center outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <Avatar size="lg" className="size-28 border-2 border-primary/30 shadow-[0_0_0_7px_rgba(106,255,148,0.06)] transition duration-300 group-hover:scale-105 group-hover:border-primary/60">
+                    <AvatarImage src={player.avatarUrl ?? undefined} alt={player.name} />
+                    <AvatarFallback className="bg-primary/10 text-3xl font-black text-primary">
+                      {initials(player.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="mt-4 min-w-0">
+                    <h2 className="truncate text-2xl font-black tracking-tight group-hover:text-primary">{player.name}</h2>
+                    <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{player.nickname || "Arena contender"}</p>
+                  </div>
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang thi đấu" : "Tạm nghỉ"}</Badge>
+                    <Badge variant="outline" className="border-white/12 bg-background/35 text-foreground">Hạng #{player.rank}</Badge>
+                  </div>
+                </Link>
+
+                <div className="mt-5 grid grid-cols-3 divide-x divide-white/10 rounded-xl border border-white/10 bg-black/20 py-3 text-center">
+                  <CardStat label="Trận" value={player.stats.matches} />
+                  <CardStat label="Thắng" value={player.stats.wins} tone="text-primary" />
+                  <CardStat label="Winrate" value={`${player.stats.winRate}%`} />
+                </div>
+                <div className="mt-4 flex items-center justify-between text-xs font-bold text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Crown className="size-3.5 text-primary" /> Hồ sơ chiến hữu</span>
+                  <span className={player.stats.currentStreak > 0 ? "flex items-center gap-1 text-primary" : "flex items-center gap-1"}><Swords className="size-3.5" /> {player.stats.currentStreak > 0 ? `${player.stats.currentStreak}W` : "—"}</span>
                 </div>
               </CardContent>
             </Card>
@@ -224,4 +240,8 @@ export function PlayerManager({ players }: { players: PlayerDto[] }) {
       )}
     </div>
   );
+}
+
+function CardStat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+  return <div className="px-2"><p className={`text-lg font-black ${tone ?? ""}`}>{value}</p><p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{label}</p></div>;
 }

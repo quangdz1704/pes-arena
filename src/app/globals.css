@@ -135,6 +135,12 @@
   color: var(--foreground);
 }
 
+.player-card-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 8%) 1px, transparent 0);
+  background-size: 9px 9px;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
 .leaderboard-mobile-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { DatabaseSetupNotice } from "@/components/shared/database-setup-notice";
 import { PageHeading } from "@/components/shared/page-heading";
 import { isDatabaseConfigured } from "@/db";
-import { listPlayers } from "@/services/player.service";
+import { listPlayersWithStats } from "@/services/player.service";
 
 import { AddPlayerButton, PlayerManager } from "./player-manager";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PlayersPage() {
   const databaseReady = isDatabaseConfigured();
-  const players = databaseReady ? await listPlayers() : [];
+  const players = databaseReady ? await listPlayersWithStats() : [];
 
   return (
     <div className="space-y-7">
