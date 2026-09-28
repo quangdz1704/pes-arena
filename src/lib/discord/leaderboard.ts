@@ -4,7 +4,7 @@ export type DiscordLeaderboardResult = "sent" | "not_configured" | "failed" | "e
 
 export function createLeaderboardDiscordPayload(entries: LeaderboardEntry[], title: string) {
   const ranking = entries.slice(0, 10).map((entry) =>
-    `**${entry.rank}. ${entry.playerName}** — **${entry.points} điểm** · ${entry.wins}W · ${entry.winRate}% WR · GD ${entry.goalDifference >= 0 ? "+" : ""}${entry.goalDifference}`,
+    `**${entry.rank}. ${entry.playerName}** — **${entry.rating} rating** · ${entry.wins}W · ${entry.winRate}% WR · GD ${entry.goalDifference >= 0 ? "+" : ""}${entry.goalDifference}`,
   ).join("\n");
 
   return {
@@ -13,7 +13,7 @@ export function createLeaderboardDiscordPayload(entries: LeaderboardEntry[], tit
       title: "🏆 PES ARENA — BẢNG XẾP HẠNG",
       description: `**${title}**\n\n${ranking}`,
       color: 0x6aff94,
-      footer: { text: "Chỉ tính trận xếp hạng đã hoàn tất" },
+      footer: { text: "BXH giao hữu · chỉ tính trận tự tạo đã hoàn tất" },
       timestamp: new Date().toISOString(),
     }],
   };

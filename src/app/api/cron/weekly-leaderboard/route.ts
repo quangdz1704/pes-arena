@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const report = await claimWeeklyLeaderboardReport(periodStart, periodEnd);
   if (!report) return NextResponse.json({ status: "already_processed" });
 
-  const entries = await getLeaderboard({ period: "SEVEN_DAYS", matchMode: "ALL", sort: "WINS" });
+  const entries = await getLeaderboard({ period: "SEVEN_DAYS", matchMode: "ALL", sort: "RATING" });
   const result = await sendLeaderboardToDiscord(entries, "Tổng kết 7 ngày qua");
   if (result === "sent" || result === "empty") {
     await finishDiscordReport(report.id, "SENT");

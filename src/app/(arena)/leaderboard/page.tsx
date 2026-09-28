@@ -22,7 +22,6 @@ import { isDatabaseConfigured } from "@/db";
 import type {
   LeaderboardMatchMode,
   LeaderboardPeriod,
-  LeaderboardSort,
 } from "@/services/leaderboard";
 import { getLeaderboard } from "@/services/leaderboard.service";
 
@@ -41,14 +40,6 @@ const modes = [
   ["TWO_V_TWO", "2v2"],
 ] as const satisfies readonly [LeaderboardMatchMode, string][];
 
-const sorts = [
-  ["POINTS", "Điểm"],
-  ["WINS", "Thắng"],
-  ["WINRATE", "Winrate"],
-  ["MATCHES", "Số trận"],
-  ["GF", "GF"],
-] as const satisfies readonly [LeaderboardSort, string][];
-
 function initials(name: string) {
   return name
     .split(" ")
@@ -62,31 +53,30 @@ function readFilter<T extends string>(value: string | undefined, allowed: readon
   return value && allowed.includes(value as T) ? (value as T) : fallback;
 }
 
-function filterHref(filters: { period: LeaderboardPeriod; matchMode: LeaderboardMatchMode; sort: LeaderboardSort }, patch: Partial<typeof filters>) {
+function filterHref(filters: { period: LeaderboardPeriod; matchMode: LeaderboardMatchMode }, patch: Partial<typeof filters>) {
   const next = { ...filters, ...patch };
-  return `/leaderboard?period=${next.period}&mode=${next.matchMode}&sort=${next.sort}`;
+  return `/leaderboard?period=${next.period}&mode=${next.matchMode}`;
 }
 
 export default async function LeaderboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; mode?: string; sort?: string }>;
+  searchParams: Promise<{ period?: string; mode?: string }>;
 }) {
   const params = await searchParams;
   const filters = {
     period: readFilter(params.period, periods.map(([value]) => value), "ALL"),
     matchMode: readFilter(params.mode, modes.map(([value]) => value), "ALL"),
-    sort: readFilter(params.sort, sorts.map(([value]) => value), "POINTS"),
   };
   const databaseReady = isDatabaseConfigured();
-  const entries = databaseReady ? await getLeaderboard(filters) : [];
+  const entries = databaseReady ? await getLeaderboard({ ...filters, sort: "RATING" }) : [];
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
       <PageHeading
-        eyebrow="Thống kê"
-        title="Bảng xếp hạng"
-        description="Chỉ tính các trận tự tạo xếp hạng — kết quả giải có bảng thành tích riêng."
+        eyebrow="Arena Rating"
+        title="Bảng xếp hạng giao hữu"
+        description="Rating Elo phản ánh sức mạnh đối thủ, không phải ai đá nhiều là đứng cao."
       />
 
       {!databaseReady ? <DatabaseSetupNotice /> : null}
@@ -97,16 +87,17 @@ export default async function LeaderboardPage({
             <CardContent className="space-y-5 p-5">
               <FilterGroup label="Khoảng thời gian" options={periods} active={filters.period} href={(period) => filterHref(filters, { period })} />
               <FilterGroup label="Chế độ" options={modes} active={filters.matchMode} href={(matchMode) => filterHref(filters, { matchMode })} />
-              <FilterGroup label="Xếp theo" options={sorts} active={filters.sort} href={(sort) => filterHref(filters, { sort })} />
             </CardContent>
           </Card>
+
+          <Card className="border-primary/20 bg-primary/5"><CardContent className="grid gap-3 p-4 text-sm sm:grid-cols-3"><div><p className="font-black text-primary">Elo Rating</p><p className="mt-1 text-muted-foreground">Thắng đối thủ mạnh tăng nhiều hơn.</p></div><div><p className="font-black text-primary">Tân binh · 5 trận</p><p className="mt-1 text-muted-foreground">Chưa đủ 5 trận sẽ chưa có hạng chính thức.</p></div><div><p className="font-black text-primary">Tie-break đối đầu</p><p className="mt-1 text-muted-foreground">Áp dụng khi rating bằng nhau và gặp từ 2 trận.</p></div></CardContent></Card>
 
           {entries.length === 0 ? (
             <Card className="border-dashed border-white/12 bg-transparent">
               <CardContent className="flex flex-col items-center py-16 text-center">
                 <Medal className="mb-4 size-10 text-muted-foreground" />
                 <h2 className="font-bold">Chưa đủ trận để phân định ai là vua, ai là bao cát.</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Chỉ trận tự tạo xếp hạng đã hoàn tất mới được tính vào BXH.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Cần đá trận giao hữu tự tạo để nhận Arena Rating.</p>
               </CardContent>
             </Card>
           ) : (
@@ -124,9 +115,9 @@ export default async function LeaderboardPage({
                             <AvatarFallback className="bg-primary/10 font-bold text-primary">{initials(entry.playerName)}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">HẠNG {entry.rank}</p>
+                            <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">{entry.isProvisional ? `TÂN BINH · ${entry.ratedMatches}/5` : `HẠNG ${entry.rank}`}</p>
                             <p className="truncate text-lg font-black">{entry.playerName}</p>
-                            <p className="text-sm text-muted-foreground">{entry.points} điểm · {entry.winRate}% winrate</p>
+                            <p className="text-sm text-muted-foreground">{entry.rating} rating · {formatDelta(entry.ratingDelta)} kỳ này</p>
                           </div>
                         </div>
                       </CardContent>
@@ -146,13 +137,13 @@ export default async function LeaderboardPage({
                             <AvatarFallback className="bg-primary/10 font-bold text-primary">{initials(entry.playerName)}</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold tracking-[0.16em] text-primary">HẠNG {entry.rank}</p>
+                            <p className="text-xs font-bold tracking-[0.16em] text-primary">{entry.isProvisional ? `TÂN BINH · ${entry.ratedMatches}/5` : `HẠNG ${entry.rank}`}</p>
                             <p className="truncate text-lg font-black">{entry.playerName}</p>
                           </div>
                         </div>
-                        <div className="shrink-0 rounded-lg bg-primary/10 px-3 py-1 text-right"><p className="font-black text-primary">{entry.points}</p><p className="text-xs text-muted-foreground">điểm</p></div>
+                        <div className="shrink-0 rounded-lg bg-primary/10 px-3 py-1 text-right"><p className="font-black text-primary">{entry.rating}</p><p className="text-xs text-muted-foreground">rating</p></div>
                       </div>
-                      <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="Điểm" tone="text-primary" value={entry.points} /><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
+                      <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm"><Stat label="± kỳ" tone={entry.ratingDelta >= 0 ? "text-primary" : "text-rose-400"} value={formatDelta(entry.ratingDelta)} /><Stat label="Trận" value={entry.matches} /><Stat label="T-W-L" value={`${entry.wins}-${entry.draws}-${entry.losses}`} /><Stat label="GD" value={`${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`} tone={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined} /></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -163,15 +154,16 @@ export default async function LeaderboardPage({
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead className="rounded-t-lg bg-primary/12 text-primary">Điểm</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
+                          <TableHead>#</TableHead><TableHead>Người chơi</TableHead><TableHead className="rounded-t-lg bg-primary/12 text-primary">Rating</TableHead><TableHead>± kỳ</TableHead><TableHead>Trận</TableHead><TableHead>Thắng</TableHead><TableHead>Hòa</TableHead><TableHead>Thua</TableHead><TableHead>Winrate</TableHead><TableHead>GF</TableHead><TableHead>GA</TableHead><TableHead>GD</TableHead><TableHead>Chuỗi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {entries.map((entry, index) => (
                           <TableRow key={entry.playerId}>
-                            <TableCell className="font-black text-primary">{entry.rank}</TableCell>
+                            <TableCell className="font-black text-primary">{entry.isProvisional ? "—" : entry.rank}</TableCell>
                             <TableCell className="font-bold"><div className="flex items-center gap-2"><Avatar size="sm"><AvatarImage alt={entry.playerName} src={entry.avatarUrl ?? undefined} /><AvatarFallback className="bg-primary/10 font-bold text-primary">{initials(entry.playerName)}</AvatarFallback></Avatar><span>{entry.playerName}</span></div></TableCell>
-                            <TableCell className={`bg-primary/8 font-black text-primary ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}>{entry.points}</TableCell>
+                            <TableCell className={`bg-primary/8 font-black text-primary ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}>{entry.rating}{entry.isProvisional ? <span className="ml-1 text-[10px] text-muted-foreground">NB</span> : null}</TableCell>
+                            <TableCell className={entry.ratingDelta > 0 ? "text-primary" : entry.ratingDelta < 0 ? "text-rose-400" : undefined}>{formatDelta(entry.ratingDelta)}</TableCell>
                             <TableCell>{entry.matches}</TableCell><TableCell>{entry.wins}</TableCell><TableCell>{entry.draws}</TableCell><TableCell>{entry.losses}</TableCell>
                             <TableCell>{entry.winRate}%</TableCell><TableCell>{entry.goalsFor}</TableCell><TableCell>{entry.goalsAgainst}</TableCell>
                             <TableCell className={entry.goalDifference > 0 ? "text-emerald-400" : entry.goalDifference < 0 ? "text-rose-400" : undefined}>{entry.goalDifference > 0 ? "+" : ""}{entry.goalDifference}</TableCell>
@@ -216,4 +208,8 @@ function FilterGroup<T extends string>({
 
 function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
   return <div className="min-w-0"><p className={`truncate font-bold ${tone ?? ""}`}>{value}</p><p className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p></div>;
+}
+
+function formatDelta(value: number) {
+  return `${value > 0 ? "+" : ""}${value}`;
 }

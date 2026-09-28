@@ -186,8 +186,8 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
               <CardContent className="relative flex h-full flex-col p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-3xl font-black leading-none tracking-tighter text-primary">{player.points}</p>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Điểm arena</p>
+                    <p className="text-3xl font-black leading-none tracking-tighter text-primary">{player.rating}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Arena rating</p>
                   </div>
                   <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1 backdrop-blur-sm">
                     <PlayerDialog player={player} />
@@ -223,7 +223,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                     <Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang thi đấu" : "Tạm nghỉ"}</Badge>
-                    <Badge variant="outline" className="border-white/12 bg-background/35 text-foreground">Hạng #{player.rank}</Badge>
+                    <Badge variant="outline" className="border-white/12 bg-background/35 text-foreground">{player.isProvisional ? "Tân binh" : `Hạng #${player.rank}`}</Badge>
                     {player.stats.currentStreak > 0 ? (
                       <Badge variant="outline" className="gap-1 border-primary/25 bg-primary/5 text-primary">
                         <Swords className="size-3" /> {player.stats.currentStreak}W

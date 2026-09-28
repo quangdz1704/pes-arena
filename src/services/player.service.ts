@@ -13,10 +13,13 @@ import { listLeaderboardMatchRows } from "@/repositories/match.repository";
 import { listPlayerTournamentHonors, type PlayerTournamentHonor } from "@/repositories/tournament.repository";
 
 import { buildPlayerProfileStats } from "./player-profile";
+import { arenaRating, buildLeaderboard } from "./leaderboard";
+import { buildStatistics } from "./statistics";
 
 export type PlayerRosterEntry = Awaited<ReturnType<typeof listPlayers>>[number] & {
-  points: number;
+  rating: number;
   rank: number;
+  isProvisional: boolean;
   stats: ReturnType<typeof buildPlayerProfileStats>;
   honors: PlayerTournamentHonor[];
 };
@@ -62,18 +65,24 @@ export async function listPlayersWithStats(): Promise<PlayerRosterEntry[]> {
     listLeaderboardMatchRows({ matchMode: "ALL", startDate: null }),
     listPlayerTournamentHonors(),
   ]);
+  const ratingByPlayer = new Map(
+    buildLeaderboard(rows, "RATING").map((entry) => [entry.playerId, entry]),
+  );
   const entries = players.map((player) => {
     const stats = buildPlayerProfileStats(player.id, rows);
+    const ratingEntry = ratingByPlayer.get(player.id);
     return {
       ...player,
       stats,
-      points: stats.wins * 3 + stats.draws,
+      rating: ratingEntry?.rating ?? arenaRating.initial,
+      isProvisional: ratingEntry?.isProvisional ?? true,
       honors: honorsByPlayer.get(player.id) ?? [],
     };
   });
   const ranks = new Map(
     [...entries]
-      .sort((left, right) => right.points - left.points || right.stats.wins - left.stats.wins || right.stats.goalsFor - left.stats.goalsFor)
+      .filter((entry) => !entry.isProvisional)
+      .sort((left, right) => right.rating - left.rating || right.stats.wins - left.stats.wins || right.stats.goalsFor - left.stats.goalsFor)
       .map((entry, index) => [entry.id, index + 1]),
   );
 
@@ -90,13 +99,18 @@ export async function getPlayerProfile(id: string) {
     listLeaderboardMatchRows({ matchMode: "ALL", startDate: null }),
     listPlayerTournamentHonors(),
   ]);
-  return player
-    ? {
-        player,
-        stats: buildPlayerProfileStats(player.id, rows),
-        honors: honorsByPlayer.get(player.id) ?? [],
-      }
-    : null;
+  if (!player) return null;
+  const ratingEntry = buildLeaderboard(rows, "RATING").find((entry) => entry.playerId === player.id);
+  return {
+    player,
+    stats: buildPlayerProfileStats(player.id, rows),
+    rating: ratingEntry?.rating ?? arenaRating.initial,
+    rank: ratingEntry?.isProvisional ? null : ratingEntry?.rank ?? null,
+    isProvisional: ratingEntry?.isProvisional ?? true,
+    ratedMatches: ratingEntry?.ratedMatches ?? 0,
+    rivalries: buildStatistics(rows).rivalriesByPlayer.get(player.id) ?? [],
+    honors: honorsByPlayer.get(player.id) ?? [],
+  };
 }
 
 export async function savePlayer(input: PlayerInput) {

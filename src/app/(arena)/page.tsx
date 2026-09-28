@@ -50,7 +50,7 @@ export default async function OverviewPage() {
         getLeaderboard({
           period: "SEVEN_DAYS",
           matchMode: "ALL",
-          sort: "POINTS",
+          sort: "RATING",
         }),
         listTournaments(),
       ])
@@ -211,14 +211,14 @@ export default async function OverviewPage() {
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
                 7 ngày gần nhất
               </p>
-              <h2 className="mt-1 text-2xl font-bold">Bảng xếp hạng</h2>
+              <h2 className="mt-1 text-2xl font-bold">BXH giao hữu</h2>
             </div>
             <Button
               asChild
               variant="ghost"
               className="shrink-0 font-bold text-primary hover:text-primary"
             >
-              <Link href="/leaderboard?period=SEVEN_DAYS&mode=ALL&sort=POINTS">
+              <Link href="/leaderboard?period=SEVEN_DAYS&mode=ALL&sort=RATING">
                 Xem đầy đủ <ArrowRight className="size-4" />
               </Link>
             </Button>
@@ -233,7 +233,7 @@ export default async function OverviewPage() {
                       <TableHead>#</TableHead>
                       <TableHead>Người chơi</TableHead>
                       <TableHead className="bg-primary/12 text-primary rounded-t-lg">
-                        Điểm
+                        Rating
                       </TableHead>
                       <TableHead>Trận</TableHead>
                       <TableHead>Thắng</TableHead>
@@ -250,7 +250,7 @@ export default async function OverviewPage() {
                     {leaderboard.slice(0, 5).map((entry, index, entries) => (
                       <TableRow key={entry.playerId}>
                         <TableCell className="font-black text-primary">
-                          {entry.rank}
+                          {entry.isProvisional ? "—" : entry.rank}
                         </TableCell>
                         <TableCell className="font-bold">
                           <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ export default async function OverviewPage() {
                         <TableCell
                           className={`bg-primary/8 font-black text-primary ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}
                         >
-                          {entry.points}
+                          {entry.rating}
                         </TableCell>
                         <TableCell>{entry.matches}</TableCell>
                         <TableCell>{entry.wins}</TableCell>

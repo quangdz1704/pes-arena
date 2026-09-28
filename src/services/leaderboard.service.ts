@@ -11,8 +11,8 @@ import {
 export async function getLeaderboard(filters: LeaderboardFilters) {
   const rows = await listLeaderboardMatchRows({
     matchMode: filters.matchMode,
-    startDate: getLeaderboardStartDate(filters.period),
+    startDate: null,
   });
 
-  return buildLeaderboard(rows, filters.sort);
+  return buildLeaderboard(rows, filters.sort, getLeaderboardStartDate(filters.period));
 }

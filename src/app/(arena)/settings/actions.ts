@@ -12,7 +12,7 @@ const periodSchema = z.enum(["SEVEN_DAYS", "THIRTY_DAYS", "ALL"]);
 export async function sendLeaderboardAction(_previousState: ActionState, formData: FormData): Promise<ActionState> {
   try {
     const period = periodSchema.parse(formData.get("period"));
-    const entries = await getLeaderboard({ period, matchMode: "ALL", sort: "WINS" });
+    const entries = await getLeaderboard({ period, matchMode: "ALL", sort: "RATING" });
     const titleByPeriod = { SEVEN_DAYS: "7 ngày gần nhất", THIRTY_DAYS: "30 ngày gần nhất", ALL: "Toàn thời gian" } as const;
     const result = await sendLeaderboardToDiscord(entries, titleByPeriod[period]);
     const messageByResult = {
