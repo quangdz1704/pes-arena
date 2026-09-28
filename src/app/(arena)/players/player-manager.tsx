@@ -7,6 +7,7 @@ import { Pencil, Plus, Power, Search, Swords, Trophy, UserRound } from "lucide-r
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArenaRankMark } from "@/components/shared/arena-rank-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -187,7 +188,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-3xl font-black leading-none tracking-tighter text-primary">{player.rating.toLocaleString("vi-VN")}</p>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Điểm Arena</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground"><ArenaRankMark className="size-3.5" /> Điểm Arena</p>
                   </div>
                   <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1 backdrop-blur-sm">
                     <PlayerDialog player={player} />

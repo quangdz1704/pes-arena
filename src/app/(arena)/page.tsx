@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArenaRankMark } from "@/components/shared/arena-rank-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -233,7 +234,9 @@ export default async function OverviewPage() {
                       <TableHead>#</TableHead>
                       <TableHead>Người chơi</TableHead>
                       <TableHead className="bg-primary/12 text-primary rounded-t-lg">
-                        Điểm Arena
+                        <span className="flex items-center gap-2">
+                          <ArenaRankMark /> Điểm Arena
+                        </span>
                       </TableHead>
                       <TableHead>Trận</TableHead>
                       <TableHead>Thắng</TableHead>

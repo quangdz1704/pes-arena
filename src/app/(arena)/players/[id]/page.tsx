@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { ArrowLeft, Medal, ShieldCheck, Swords, Trophy } from "lucide-react";
 
 import { PlayerRadar } from "@/components/shared/player-radar";
+import { ArenaRankMark } from "@/components/shared/arena-rank-mark";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
         <Avatar className="size-24 border-2 border-primary/30"><AvatarImage alt={player.name} src={player.avatarUrl ?? undefined} /><AvatarFallback className="bg-primary/10 text-2xl font-black text-primary">{initials(player.name)}</AvatarFallback></Avatar>
         <div className="mt-4 min-w-0 sm:ml-5 sm:mt-0"><div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start"><h1 className="text-3xl font-black">{player.name}</h1><Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang chơi" : "Tạm nghỉ"}</Badge><Badge variant="outline">{isProvisional ? `Tân binh · ${ratedMatches}/5 trận` : `Hạng #${rank}`}</Badge></div><p className="mt-2 text-muted-foreground">{player.nickname || "Chưa có biệt danh"}</p><p className="mt-4 text-sm text-muted-foreground">{stats.matches > 0 ? `${stats.matches} trận tự tạo xếp hạng đã hoàn tất.` : "Chưa có trận tự tạo để thống kê."}</p></div>
       </CardContent></Card>
-      <Card className="border-white/10 bg-card/80"><CardContent className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4"><Stat label="Điểm Arena" value={rating.toLocaleString("vi-VN")} tone="text-primary" /><Stat label="Trận" value={stats.matches} /><Stat label="Winrate" value={`${stats.winRate}%`} /><Stat label="Chuỗi thắng" value={`${stats.currentStreak}W`} /></CardContent></Card>
+      <Card className="border-white/10 bg-card/80"><CardContent className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4"><Stat label={<span className="inline-flex items-center gap-1"><ArenaRankMark className="size-3.5" /> Điểm Arena</span>} value={rating.toLocaleString("vi-VN")} tone="text-primary" /><Stat label="Trận" value={stats.matches} /><Stat label="Winrate" value={`${stats.winRate}%`} /><Stat label="Chuỗi thắng" value={`${stats.currentStreak}W`} /></CardContent></Card>
     </section>
 
     <Card className="border-white/10 bg-card/80"><CardHeader><CardTitle className="flex items-center gap-2"><Swords className="size-5 text-primary" /> Đối đầu trực tiếp</CardTitle><p className="text-sm font-normal text-muted-foreground">Được ưu tiên khi Điểm Arena bằng nhau và đã gặp tối thiểu 2 trận.</p></CardHeader><CardContent>{rivalries.length === 0 ? <p className="text-sm text-muted-foreground">Chưa có dữ liệu đối đầu.</p> : <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{rivalries.slice(0, 6).map((rival) => <div className="flex items-center justify-between rounded-xl border border-white/10 bg-background/40 p-4" key={rival.playerId}><div><p className="font-black">vs {rival.playerName}</p><p className="mt-1 text-xs text-muted-foreground">{rival.matches} lần chạm trán</p></div><Badge variant="outline">{rival.wins}W · {rival.draws}D · {rival.losses}L</Badge></div>)}</div>}</CardContent></Card>
@@ -48,7 +50,7 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
   </div>;
 }
 
-function Stat({ label, value, tone }: { label: string; value: string | number; tone?: string }) {
+function Stat({ label, value, tone }: { label: ReactNode; value: string | number; tone?: string }) {
   return <div className="rounded-xl bg-background/50 p-3 text-center"><p className="text-xs text-muted-foreground">{label}</p><p className={`mt-1 text-2xl font-black ${tone ?? ""}`}>{value}</p></div>;
 }
 
