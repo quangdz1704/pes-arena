@@ -160,6 +160,12 @@
   animation: arena-news-marquee 24s linear infinite;
 }
 
+.arena-news-marquee {
+  width: 100vw;
+  margin-top: -1.5rem;
+  margin-left: calc(50% - 50vw);
+}
+
 .arena-news-marquee-track:hover,
 .arena-news-marquee-track:focus-within {
   animation-play-state: paused;
@@ -172,6 +178,14 @@
 
   .leaderboard-table {
     display: block;
+  }
+}
+
+@media (min-width: 64rem) {
+  .arena-news-marquee {
+    width: calc(100vw - 18rem);
+    margin-top: -2.5rem;
+    margin-left: calc(50% - ((100vw - 18rem) / 2));
   }
 }
 
