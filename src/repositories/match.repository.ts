@@ -15,6 +15,7 @@ import {
   teamPools,
   teams,
   tournamentFixtures,
+  tournaments,
 } from "@/db/schema";
 import type { LeaderboardMatchMode, LeaderboardMatchRow } from "@/services/leaderboard";
 
@@ -71,6 +72,13 @@ export type MatchDetailDto = {
   createdAt: string;
   sides: [MatchSideDto, MatchSideDto];
   notes: MatchNoteDto[];
+};
+
+export type MatchHistoryDto = MatchDetailDto & {
+  tournament: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 type CreateMatchValues = {
@@ -334,7 +342,7 @@ export async function listActiveMatchRecords(limit = 20): Promise<MatchDetailDto
   });
 }
 
-export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDto[]> {
+export async function listMatchHistoryRecords(limit = 50): Promise<MatchHistoryDto[]> {
   const matchRows = await getDb()
     .select()
     .from(matches)
@@ -342,10 +350,18 @@ export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDt
     .orderBy(desc(matches.playedAt), desc(matches.createdAt))
     .limit(limit);
   const matchIds = matchRows.map((match) => match.id);
-  const [sidesByMatch, notesByMatch] = await Promise.all([
+  const tournamentIds = [...new Set(matchRows.flatMap((match) => (match.tournamentId ? [match.tournamentId] : [])))];
+  const [sidesByMatch, notesByMatch, tournamentRows] = await Promise.all([
     getSidesForMatches(matchIds),
     getNotesForMatches(matchIds),
+    tournamentIds.length > 0
+      ? getDb()
+          .select({ id: tournaments.id, name: tournaments.name })
+          .from(tournaments)
+          .where(inArray(tournaments.id, tournamentIds))
+      : Promise.resolve([]),
   ]);
+  const tournamentsById = new Map(tournamentRows.map((tournament) => [tournament.id, tournament]));
 
   return matchRows.flatMap((match) => {
     const detail = toMatchDetail(
@@ -353,7 +369,10 @@ export async function listMatchHistoryRecords(limit = 50): Promise<MatchDetailDt
       sidesByMatch.get(match.id) ?? [],
       notesByMatch.get(match.id) ?? [],
     );
-    return detail ? [detail] : [];
+    if (!detail) return [];
+
+    const tournament = match.tournamentId ? tournamentsById.get(match.tournamentId) ?? null : null;
+    return [{ ...detail, tournament }];
   });
 }
 
