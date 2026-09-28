@@ -8,9 +8,9 @@ export type ArenaRankTier = {
 export const arenaRankTiers: ArenaRankTier[] = [
   { id: "LEGEND", label: "Huyền thoại", minRating: 1500, tone: "text-amber-300" },
   { id: "SUPERSTAR", label: "Siêu sao", minRating: 1350, tone: "text-fuchsia-300" },
-  { id: "STAR", label: "Ngôi sao", minRating: 1200, tone: "text-sky-300" },
+  { id: "STAR", label: "Thế giới", minRating: 1200, tone: "text-sky-300" },
   { id: "PRO", label: "Chuyên nghiệp", minRating: 1100, tone: "text-violet-300" },
-  { id: "WARRIOR", label: "Chiến binh", minRating: 1000, tone: "text-primary" },
+  { id: "WARRIOR", label: "Ao làng", minRating: 1000, tone: "text-primary" },
   { id: "ROOKIE", label: "Tân binh", minRating: 0, tone: "text-muted-foreground" },
 ];
 
