@@ -26,6 +26,9 @@ import { isDatabaseConfigured } from "@/db";
 import { getFoundationSummary } from "@/repositories/dashboard.repository";
 import { getLeaderboard } from "@/services/leaderboard.service";
 import { listActiveMatches } from "@/services/match.service";
+import { listTournaments } from "@/services/tournament.service";
+
+import { TournamentCarousel } from "./tournament-carousel";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +43,7 @@ function initials(name: string) {
 
 export default async function OverviewPage() {
   const databaseReady = isDatabaseConfigured();
-  const [summary, activeMatches, leaderboard] = databaseReady
+  const [summary, activeMatches, leaderboard, tournaments] = databaseReady
     ? await Promise.all([
         getFoundationSummary(),
         listActiveMatches(),
@@ -49,8 +52,22 @@ export default async function OverviewPage() {
           matchMode: "ALL",
           sort: "POINTS",
         }),
+        listTournaments(),
       ])
-    : [{ players: 0, teams: 0, pools: 0 }, [], []];
+    : [{ players: 0, teams: 0, pools: 0 }, [], [], []];
+  const tournamentStatusOrder = { ACTIVE: 0, FINISHED: 1, DRAFT: 2, CANCELLED: 3 } as const;
+  const tournamentItems = [...tournaments]
+    .sort((left, right) => tournamentStatusOrder[left.status] - tournamentStatusOrder[right.status] || right.createdAt.getTime() - left.createdAt.getTime())
+    .map((tournament) => ({
+      id: tournament.id,
+      name: tournament.name,
+      type: tournament.type,
+      matchMode: tournament.matchMode,
+      status: tournament.status,
+      competitors: tournament.competitors.length,
+      fixtures: tournament.fixtures.length,
+      createdAt: tournament.createdAt.toISOString(),
+    }));
 
   return (
     <div className="space-y-8">
@@ -174,6 +191,16 @@ export default async function OverviewPage() {
               ))}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {databaseReady ? (
+        <section>
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Sảnh danh vọng</p><h2 className="mt-1 text-2xl font-bold">Giải đấu</h2></div>
+            <Button asChild className="shrink-0 font-bold text-primary hover:text-primary" variant="ghost"><Link href="/tournaments">Xem tất cả <ArrowRight className="size-4" /></Link></Button>
+          </div>
+          {tournamentItems.length > 0 ? <TournamentCarousel items={tournamentItems} /> : <Card className="border-dashed border-white/12 bg-transparent"><CardContent className="flex flex-col items-center py-10 text-center"><Trophy className="mb-3 size-7 text-muted-foreground" /><p className="font-bold">Chưa có giải đấu nào.</p><Button asChild className="mt-4" size="sm"><Link href="/tournaments">Tạo giải đầu tiên</Link></Button></CardContent></Card>}
         </section>
       ) : null}
 
