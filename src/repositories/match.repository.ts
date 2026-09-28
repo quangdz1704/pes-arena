@@ -367,6 +367,7 @@ export async function listLeaderboardMatchRows({
   const conditions = [
     eq(matches.status, "FINISHED"),
     eq(matches.isRanked, true),
+    isNull(matches.tournamentId),
   ];
   if (matchMode !== "ALL") conditions.push(eq(matches.matchMode, matchMode));
   if (startDate) conditions.push(gte(matches.playedAt, startDate));

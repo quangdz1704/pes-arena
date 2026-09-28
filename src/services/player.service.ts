@@ -10,6 +10,7 @@ import {
   updatePlayerRecord,
 } from "@/repositories/player.repository";
 import { listLeaderboardMatchRows } from "@/repositories/match.repository";
+import { listPlayerTournamentHonors, type PlayerTournamentHonor } from "@/repositories/tournament.repository";
 
 import { buildPlayerProfileStats } from "./player-profile";
 
@@ -17,6 +18,7 @@ export type PlayerRosterEntry = Awaited<ReturnType<typeof listPlayers>>[number] 
   points: number;
   rank: number;
   stats: ReturnType<typeof buildPlayerProfileStats>;
+  honors: PlayerTournamentHonor[];
 };
 
 const optionalUrl = z
@@ -55,13 +57,19 @@ export async function listPlayers() {
 }
 
 export async function listPlayersWithStats(): Promise<PlayerRosterEntry[]> {
-  const [players, rows] = await Promise.all([
+  const [players, rows, honorsByPlayer] = await Promise.all([
     listPlayerRecords(),
     listLeaderboardMatchRows({ matchMode: "ALL", startDate: null }),
+    listPlayerTournamentHonors(),
   ]);
   const entries = players.map((player) => {
     const stats = buildPlayerProfileStats(player.id, rows);
-    return { ...player, stats, points: stats.wins * 3 + stats.draws };
+    return {
+      ...player,
+      stats,
+      points: stats.wins * 3 + stats.draws,
+      honors: honorsByPlayer.get(player.id) ?? [],
+    };
   });
   const ranks = new Map(
     [...entries]
@@ -77,11 +85,18 @@ export async function getPlayer(id: string) {
 }
 
 export async function getPlayerProfile(id: string) {
-  const [player, rows] = await Promise.all([
+  const [player, rows, honorsByPlayer] = await Promise.all([
     getPlayerRecord(id),
     listLeaderboardMatchRows({ matchMode: "ALL", startDate: null }),
+    listPlayerTournamentHonors(),
   ]);
-  return player ? { player, stats: buildPlayerProfileStats(player.id, rows) } : null;
+  return player
+    ? {
+        player,
+        stats: buildPlayerProfileStats(player.id, rows),
+        honors: honorsByPlayer.get(player.id) ?? [],
+      }
+    : null;
 }
 
 export async function savePlayer(input: PlayerInput) {

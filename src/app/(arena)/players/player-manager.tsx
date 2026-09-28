@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Pencil, Plus, Power, Search, Swords, UserRound } from "lucide-react";
+import { Pencil, Plus, Power, Search, Swords, Trophy, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -180,7 +180,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredPlayers.map((player) => (
-            <Card key={player.id} className="group relative isolate min-h-[390px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+            <Card key={player.id} className="group relative isolate min-h-[420px] overflow-hidden border-white/12 bg-[#101419] transition duration-300 hover:-translate-y-1 hover:border-primary/45 hover:shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
               <div aria-hidden className="player-card-grid absolute inset-0 opacity-60" />
               <div aria-hidden className="absolute -right-14 -top-12 size-48 rounded-full bg-primary/12 blur-3xl transition duration-500 group-hover:bg-primary/20" />
               <CardContent className="relative flex h-full flex-col p-4">
@@ -236,6 +236,28 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   <CardStat label="Trận" value={player.stats.matches} />
                   <CardStat label="Thắng" value={player.stats.wins} tone="text-primary" />
                   <CardStat label="Winrate" value={`${player.stats.winRate}%`} />
+                </div>
+                <div className="mt-3 min-h-8 text-center">
+                  {player.honors.filter((honor) => honor.place === 1).length > 0 ? (
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {player.honors
+                        .filter((honor) => honor.place === 1)
+                        .map((honor) => (
+                          <span
+                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-amber-300/25 bg-amber-300/10 px-2 py-1 text-[10px] font-black text-amber-200"
+                            key={honor.tournamentId}
+                            title={`Vô địch ${honor.tournamentName}`}
+                          >
+                            <Trophy className="size-3 shrink-0" />
+                            <span className="max-w-40 truncate">{honor.tournamentName}</span>
+                          </span>
+                        ))}
+                    </div>
+                  ) : (
+                    <p className="pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                      Chưa có danh hiệu giải
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>

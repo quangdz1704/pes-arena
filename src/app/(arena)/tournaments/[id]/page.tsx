@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Crown, Medal, Trophy } from "lucide-react";
 
 import { PageHeading } from "@/components/shared/page-heading";
 import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
 import { getKnockoutRoundLabel } from "@/services/knockout";
 import { getTournament } from "@/services/tournament.service";
+import { buildTournamentStandings, getTournamentPlacements } from "@/services/tournament-results";
 
 import { CancelTournamentButton } from "./cancel-tournament-button";
 
@@ -27,28 +29,21 @@ export default async function TournamentDetailPage({
     rounds.set(fixture.round, [...(rounds.get(fixture.round) ?? []), fixture]);
   }
   const knockoutTotalRounds = Math.log2(tournament.competitors.length);
-  const standings = tournament.competitors.map((competitor) => ({
-    ...competitor, played: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, points: 0,
-  }));
-  const standingByName = new Map(standings.map((standing) => [standing.name, standing]));
-  for (const fixture of tournament.fixtures) {
-    if (fixture.matchStatus !== "FINISHED" || fixture.homeScore === null || fixture.awayScore === null) continue;
-    const home = standingByName.get(fixture.homeName);
-    const away = standingByName.get(fixture.awayName);
-    if (!home || !away) continue;
-    home.played += 1; away.played += 1;
-    home.goalsFor += fixture.homeScore; home.goalsAgainst += fixture.awayScore;
-    away.goalsFor += fixture.awayScore; away.goalsAgainst += fixture.homeScore;
-    if (fixture.homeScore > fixture.awayScore) { home.wins += 1; away.losses += 1; home.points += 3; }
-    else if (fixture.homeScore < fixture.awayScore) { away.wins += 1; home.losses += 1; away.points += 3; }
-    else { home.draws += 1; away.draws += 1; home.points += 1; away.points += 1; }
-  }
-  standings.sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) || b.goalsFor - a.goalsFor || a.name.localeCompare(b.name));
-
-  const finalFixture = tournament.fixtures.find((fixture) => fixture.round === knockoutTotalRounds);
-  const champion = finalFixture?.matchStatus === "FINISHED" && finalFixture.homeScore !== finalFixture.awayScore
-    ? finalFixture.homeScore! > finalFixture.awayScore! ? finalFixture.homeName : finalFixture.awayName
-    : null;
+  const standings = buildTournamentStandings(tournament.competitors, tournament.fixtures);
+  const placements = getTournamentPlacements({
+    type: tournament.type,
+    status: tournament.status,
+    competitors: tournament.competitors,
+    fixtures: tournament.fixtures,
+  });
+  const competitorById = new Map(tournament.competitors.map((competitor) => [competitor.id, competitor]));
+  const podium = ([1, 2, 3] as const).map((place) => ({
+    place,
+    competitors: placements
+      .filter((placement) => placement.place === place)
+      .map((placement) => competitorById.get(placement.competitorId))
+      .filter((competitor): competitor is (typeof tournament.competitors)[number] => Boolean(competitor)),
+  })).filter((entry) => entry.competitors.length > 0);
 
   return (
     <div className="mx-auto max-w-5xl space-y-7">
@@ -64,6 +59,17 @@ export default async function TournamentDetailPage({
         />
       </div>
 
+      {podium.length > 0 ? (
+        <Card className="overflow-hidden border-amber-300/25 bg-gradient-to-br from-amber-300/10 via-card to-card">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex items-center gap-2"><Trophy className="size-5 text-amber-300" /><div><h2 className="font-black">Bảng vinh danh</h2><p className="text-sm text-muted-foreground">Thành tích chính thức của {tournament.name}.</p></div></div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {podium.map(({ place, competitors }) => <PodiumCard competitors={competitors} key={place} place={place} />)}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {tournament.type === "LEAGUE" ? <Card>
         <CardContent className="p-5">
           <h2 className="font-black">Bảng điểm</h2>
@@ -76,9 +82,9 @@ export default async function TournamentDetailPage({
                 <tr><th className="px-2 py-2">#</th><th className="px-2 py-2">Tuyển thủ</th><th className="px-2 py-2 text-center">T</th><th className="px-2 py-2 text-center">W</th><th className="px-2 py-2 text-center">D</th><th className="px-2 py-2 text-center">L</th><th className="px-2 py-2 text-center">HS</th><th className="px-2 py-2 text-right">Điểm</th></tr>
               </thead>
               <tbody>
-                {standings.map((competitor, index) => (
+                {standings.map((competitor) => (
                   <tr className="border-b last:border-0" key={competitor.id}>
-                    <td className="px-2 py-3">{index + 1}</td><td className="px-2 py-3 font-semibold">{competitor.name}</td><td className="px-2 py-3 text-center">{competitor.played}</td><td className="px-2 py-3 text-center">{competitor.wins}</td><td className="px-2 py-3 text-center">{competitor.draws}</td><td className="px-2 py-3 text-center">{competitor.losses}</td><td className="px-2 py-3 text-center">{competitor.goalsFor - competitor.goalsAgainst}</td><td className="px-2 py-3 text-right font-black">{competitor.points}</td>
+                    <td className="px-2 py-3">{competitor.rank}</td><td className="px-2 py-3 font-semibold">{competitor.name}</td><td className="px-2 py-3 text-center">{competitor.played}</td><td className="px-2 py-3 text-center">{competitor.wins}</td><td className="px-2 py-3 text-center">{competitor.draws}</td><td className="px-2 py-3 text-center">{competitor.losses}</td><td className="px-2 py-3 text-center">{competitor.goalsFor - competitor.goalsAgainst}</td><td className="px-2 py-3 text-right font-black">{competitor.points}</td>
                   </tr>
                 ))}
               </tbody>
@@ -92,7 +98,7 @@ export default async function TournamentDetailPage({
             <p className="mt-1 text-sm text-muted-foreground">
               Đội thắng sẽ tự động đi tiếp khi kết quả trận được lưu. Knockout không chấp nhận tỷ số hoà.
             </p>
-            {champion ? <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 font-black text-primary">🏆 Vô địch: {champion}</p> : null}
+            {tournament.status !== "FINISHED" ? <p className="mt-4 rounded-xl bg-primary/10 px-4 py-3 text-sm font-bold text-primary">🏆 Chiếc cúp vẫn đang chờ chủ nhân.</p> : null}
           </CardContent>
         </Card>
       )}
@@ -130,4 +136,17 @@ export default async function TournamentDetailPage({
       </section>
     </div>
   );
+}
+
+function PodiumCard({
+  place,
+  competitors,
+}: {
+  place: 1 | 2 | 3;
+  competitors: Array<{ id: string; name: string }>;
+}) {
+  const label = place === 1 ? "Vô địch" : place === 2 ? "Á quân" : competitors.length > 1 ? "Đồng hạng ba" : "Hạng ba";
+  const Icon = place === 1 ? Crown : Medal;
+  const color = place === 1 ? "border-amber-300/35 bg-amber-300/10 text-amber-200" : place === 2 ? "border-slate-300/25 bg-slate-300/10 text-slate-100" : "border-amber-700/30 bg-amber-700/10 text-amber-500";
+  return <div className={`rounded-xl border p-4 text-center ${color}`}><Icon className="mx-auto size-7" /><p className="mt-2 text-xs font-black uppercase tracking-[0.16em]">{label}</p><p className="mt-1 font-black text-foreground">{competitors.map((competitor) => competitor.name).join(" · ")}</p></div>;
 }

@@ -119,7 +119,8 @@ export async function startMatch(input: StartMatchInput) {
     matchMode: input.composition.matchMode,
     teamPoolId: input.teamPoolId,
     randomMode: input.randomMode,
-    isRanked: input.isRanked,
+    // Tournament results have their own table and awards; Arena ranking only tracks custom matches.
+    isRanked: tournamentId ? false : input.isRanked,
     sideAPlayerIds: input.composition.sideAPlayerIds,
     sideBPlayerIds: input.composition.sideBPlayerIds,
     sideATeamId: input.sideATeamId,

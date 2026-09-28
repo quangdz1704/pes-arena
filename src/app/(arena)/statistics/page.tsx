@@ -18,7 +18,7 @@ export default async function StatisticsPage({ searchParams }: { searchParams: P
   const rivalries = selectedPlayer ? stats?.rivalriesByPlayer.get(selectedPlayer.playerId) ?? [] : [];
 
   return <div className="mx-auto max-w-6xl space-y-7">
-    <PageHeading eyebrow="Thống kê" title="Phong độ & đối đầu" description="Không còn cãi bằng trí nhớ: mọi con số đều lấy từ trận xếp hạng đã lưu." />
+    <PageHeading eyebrow="Thống kê" title="Phong độ & đối đầu" description="Mọi con số chỉ lấy từ các trận tự tạo xếp hạng; thành tích giải được lưu riêng." />
     {!databaseReady ? <DatabaseSetupNotice /> : null}
     {stats && stats.players.length === 0 ? <EmptyStats /> : null}
     {stats && stats.players.length > 0 ? <>

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
 import { getDb } from "@/db";
@@ -16,6 +16,14 @@ import {
 
 import { generateRoundRobin } from "@/services/round-robin";
 import { generateKnockoutRound } from "@/services/knockout";
+import { getTournamentPlacements } from "@/services/tournament-results";
+
+export type PlayerTournamentHonor = {
+  tournamentId: string;
+  tournamentName: string;
+  tournamentType: "LEAGUE" | "KNOCKOUT";
+  place: 1 | 2 | 3;
+};
 
 export async function createLeagueRecord(input: {
   name: string;
@@ -225,6 +233,7 @@ export async function getTournamentRecord(tournamentId: string) {
       ? db
           .select({
             competitorId: tournamentCompetitorPlayers.competitorId,
+            playerId: tournamentCompetitorPlayers.playerId,
             name: players.name,
             position: tournamentCompetitorPlayers.position,
           })
@@ -273,10 +282,15 @@ export async function getTournamentRecord(tournamentId: string) {
       id: competitor.id,
       name: nameByCompetitorId.get(competitor.id) ?? competitor.displayName,
       seed: competitor.seed,
+      playerIds: competitorPlayers
+        .filter((player) => player.competitorId === competitor.id)
+        .map((player) => player.playerId),
     })),
     fixtures: fixtures.map((fixture) => ({
       id: fixture.id,
       round: fixture.round,
+      homeCompetitorId: fixture.homeCompetitorId,
+      awayCompetitorId: fixture.awayCompetitorId,
       matchId: fixture.matchId,
       matchStatus: fixture.matchId ? matchById.get(fixture.matchId)?.status ?? null : null,
       homeScore: fixture.matchId ? scoresByMatchId.get(fixture.matchId)?.A ?? null : null,
@@ -285,6 +299,115 @@ export async function getTournamentRecord(tournamentId: string) {
       awayName: nameByCompetitorId.get(fixture.awayCompetitorId) ?? "Chưa rõ",
     })),
   };
+}
+
+export async function listPlayerTournamentHonors(): Promise<Map<string, PlayerTournamentHonor[]>> {
+  const db = getDb();
+  const completedTournaments = await db
+    .select({
+      id: tournaments.id,
+      name: tournaments.name,
+      type: tournaments.type,
+      status: tournaments.status,
+      createdAt: tournaments.createdAt,
+    })
+    .from(tournaments)
+    .where(eq(tournaments.status, "FINISHED"))
+    .orderBy(desc(tournaments.createdAt));
+  if (completedTournaments.length === 0) return new Map();
+
+  const tournamentIds = completedTournaments.map((tournament) => tournament.id);
+  const competitorRows = await db
+    .select()
+    .from(tournamentCompetitors)
+    .where(inArray(tournamentCompetitors.tournamentId, tournamentIds));
+  const competitorIds = competitorRows.map((competitor) => competitor.id);
+  const [competitorPlayers, fixtureRows] = await Promise.all([
+    competitorIds.length
+      ? db
+          .select({
+            competitorId: tournamentCompetitorPlayers.competitorId,
+            playerId: tournamentCompetitorPlayers.playerId,
+          })
+          .from(tournamentCompetitorPlayers)
+          .where(inArray(tournamentCompetitorPlayers.competitorId, competitorIds))
+      : Promise.resolve([]),
+    db
+      .select()
+      .from(tournamentFixtures)
+      .where(inArray(tournamentFixtures.tournamentId, tournamentIds)),
+  ]);
+  const matchIds = fixtureRows.flatMap((fixture) => (fixture.matchId ? [fixture.matchId] : []));
+  const [matchRows, scoreRows] = await Promise.all([
+    matchIds.length
+      ? db
+          .select({ id: matches.id, status: matches.status })
+          .from(matches)
+          .where(inArray(matches.id, matchIds))
+      : Promise.resolve([]),
+    matchIds.length
+      ? db
+          .select({ matchId: matchSides.matchId, side: matchSides.side, score: matchSides.score })
+          .from(matchSides)
+          .where(inArray(matchSides.matchId, matchIds))
+      : Promise.resolve([]),
+  ]);
+  const statusByMatchId = new Map(matchRows.map((match) => [match.id, match.status]));
+  const scoresByMatchId = new Map<string, { A: number | null; B: number | null }>();
+  for (const score of scoreRows) {
+    const current = scoresByMatchId.get(score.matchId) ?? { A: null, B: null };
+    current[score.side] = score.score;
+    scoresByMatchId.set(score.matchId, current);
+  }
+
+  const playerIdsByCompetitor = new Map<string, string[]>();
+  for (const member of competitorPlayers) {
+    playerIdsByCompetitor.set(member.competitorId, [
+      ...(playerIdsByCompetitor.get(member.competitorId) ?? []),
+      member.playerId,
+    ]);
+  }
+  const honorsByPlayer = new Map<string, PlayerTournamentHonor[]>();
+  for (const tournament of completedTournaments) {
+    const competitors = competitorRows
+      .filter((competitor) => competitor.tournamentId === tournament.id)
+      .map((competitor) => ({
+        id: competitor.id,
+        name: competitor.displayName,
+        seed: competitor.seed,
+      }));
+    const fixtures = fixtureRows
+      .filter((fixture) => fixture.tournamentId === tournament.id)
+      .map((fixture) => ({
+        round: fixture.round,
+        homeCompetitorId: fixture.homeCompetitorId,
+        awayCompetitorId: fixture.awayCompetitorId,
+        matchStatus: fixture.matchId ? statusByMatchId.get(fixture.matchId) ?? null : null,
+        homeScore: fixture.matchId ? scoresByMatchId.get(fixture.matchId)?.A ?? null : null,
+        awayScore: fixture.matchId ? scoresByMatchId.get(fixture.matchId)?.B ?? null : null,
+      }));
+    const placements = getTournamentPlacements({
+      type: tournament.type,
+      status: tournament.status,
+      competitors,
+      fixtures,
+    });
+
+    for (const placement of placements) {
+      for (const playerId of playerIdsByCompetitor.get(placement.competitorId) ?? []) {
+        const honors = honorsByPlayer.get(playerId) ?? [];
+        honors.push({
+          tournamentId: tournament.id,
+          tournamentName: tournament.name,
+          tournamentType: tournament.type,
+          place: placement.place,
+        });
+        honorsByPlayer.set(playerId, honors);
+      }
+    }
+  }
+
+  return honorsByPlayer;
 }
 
 export async function getTournamentFixtureForMatchStart(fixtureId: string) {

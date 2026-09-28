@@ -86,7 +86,7 @@ export default async function LeaderboardPage({
       <PageHeading
         eyebrow="Thống kê"
         title="Bảng xếp hạng"
-        description="Thắng thì lên đỉnh. Thua thì ít nhất cũng có số liệu để chối."
+        description="Chỉ tính các trận tự tạo xếp hạng — kết quả giải có bảng thành tích riêng."
       />
 
       {!databaseReady ? <DatabaseSetupNotice /> : null}
@@ -106,7 +106,7 @@ export default async function LeaderboardPage({
               <CardContent className="flex flex-col items-center py-16 text-center">
                 <Medal className="mb-4 size-10 text-muted-foreground" />
                 <h2 className="font-bold">Chưa đủ trận để phân định ai là vua, ai là bao cát.</h2>
-                <p className="mt-1 text-sm text-muted-foreground">Chỉ các trận xếp hạng đã hoàn tất mới được tính vào BXH.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Chỉ trận tự tạo xếp hạng đã hoàn tất mới được tính vào BXH.</p>
               </CardContent>
             </Card>
           ) : (
