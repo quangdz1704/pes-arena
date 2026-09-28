@@ -3,20 +3,40 @@ import type { LeaderboardEntry } from "@/services/leaderboard";
 export type DiscordLeaderboardResult = "sent" | "not_configured" | "failed" | "empty";
 
 export function createLeaderboardDiscordPayload(entries: LeaderboardEntry[], title: string) {
-  const ranking = entries.slice(0, 10).map((entry) =>
-    `**${entry.rank}. ${entry.playerName}** — **${entry.rating} rating** · ${entry.wins}W · ${entry.winRate}% WR · GD ${entry.goalDifference >= 0 ? "+" : ""}${entry.goalDifference}`,
-  ).join("\n");
+  const ranking = entries.slice(0, 10).map(formatLeaderboardEntry).join("\n\n");
 
   return {
     allowed_mentions: { parse: [] },
     embeds: [{
-      title: "🏆 PES ARENA — BẢNG XẾP HẠNG",
+      title: "🛡️ PES ARENA — BXH GIAO HỮU",
       description: `**${title}**\n\n${ranking}`,
       color: 0x6aff94,
-      footer: { text: "BXH giao hữu · chỉ tính trận tự tạo đã hoàn tất" },
+      footer: { text: "Điểm Arena · chỉ tính trận giao hữu tự tạo đã hoàn tất" },
       timestamp: new Date().toISOString(),
     }],
   };
+}
+
+function formatLeaderboardEntry(entry: LeaderboardEntry) {
+  const placement = entry.isProvisional
+    ? `🧪 **Tạm** **${entry.playerName}** · còn ${Math.max(0, 5 - entry.ratedMatches)} trận để chốt hạng`
+    : `${rankIcon(entry.rank)} **#${entry.rank} ${entry.playerName}**`;
+  const movement = entry.ratingDelta > 0
+    ? `↗ **+${entry.ratingDelta}**`
+    : entry.ratingDelta < 0
+      ? `↘ **-${Math.abs(entry.ratingDelta)}**`
+      : "→ **0**";
+  const goalDifference = `${entry.goalDifference > 0 ? "+" : ""}${entry.goalDifference}`;
+
+  return [
+    placement,
+    `> 🛡️ **${entry.rating.toLocaleString("vi-VN")} Điểm Arena** · ${movement}`,
+    `> ${entry.wins} thắng · ${entry.draws} hòa · ${entry.losses} thua · Winrate ${entry.winRate}% · HS ${goalDifference}`,
+  ].join("\n");
+}
+
+function rankIcon(rank: number) {
+  return rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : "🏅";
 }
 
 export async function sendLeaderboardToDiscord(entries: LeaderboardEntry[], title: string): Promise<DiscordLeaderboardResult> {
