@@ -160,6 +160,11 @@
   animation: arena-news-marquee 24s linear infinite;
 }
 
+.arena-news-marquee-track:hover,
+.arena-news-marquee-track:focus-within {
+  animation-play-state: paused;
+}
+
 @media (min-width: 48rem) {
   .leaderboard-mobile-list {
     display: none;
