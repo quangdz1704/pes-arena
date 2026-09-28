@@ -17,9 +17,14 @@ export default async function ArenaLayout({ children }: LayoutProps<"/">) {
         Bỏ qua điều hướng
       </a>
       <DesktopSidebar />
-      <ArenaNewsMarquee compact fixed items={news} />
-      <div className="pt-10">
+      <div className="hidden lg:block">
+        <ArenaNewsMarquee compact fixed items={news} />
+      </div>
+      <div className="lg:pt-10">
         <MobileHeader />
+        <div className="sticky top-16 z-20 lg:hidden">
+          <ArenaNewsMarquee compact items={news} />
+        </div>
         <main className="min-h-screen px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 lg:ml-72 lg:px-10 lg:pb-10 lg:pt-10" id="main-content" tabIndex={-1}>
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>

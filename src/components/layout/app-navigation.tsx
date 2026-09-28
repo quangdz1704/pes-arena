@@ -153,7 +153,7 @@ export function MobileBottomNav() {
 
 export function MobileHeader() {
   return (
-    <header className="sticky top-10 z-30 flex h-16 items-center justify-between border-b border-white/8 bg-background/85 px-4 backdrop-blur-xl lg:hidden">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/8 bg-background/85 px-4 backdrop-blur-xl lg:hidden">
       <Link href="/" className="flex items-center gap-2 font-black tracking-[0.1em]">
         <Gamepad2 className="size-5 text-primary" /> PES ARENA
       </Link>
