@@ -186,8 +186,8 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
               <CardContent className="relative flex h-full flex-col p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-3xl font-black leading-none tracking-tighter text-primary">{player.rating}</p>
-                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Arena rating</p>
+                    <p className="text-3xl font-black leading-none tracking-tighter text-primary">{player.rating.toLocaleString("vi-VN")}</p>
+                    <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Điểm Arena</p>
                   </div>
                   <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1 backdrop-blur-sm">
                     <PlayerDialog player={player} />

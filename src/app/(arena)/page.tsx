@@ -233,7 +233,7 @@ export default async function OverviewPage() {
                       <TableHead>#</TableHead>
                       <TableHead>Người chơi</TableHead>
                       <TableHead className="bg-primary/12 text-primary rounded-t-lg">
-                        Rating
+                        Điểm Arena
                       </TableHead>
                       <TableHead>Trận</TableHead>
                       <TableHead>Thắng</TableHead>
@@ -269,7 +269,7 @@ export default async function OverviewPage() {
                         <TableCell
                           className={`bg-primary/8 font-black text-primary ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}
                         >
-                          {entry.rating}
+                          {entry.rating.toLocaleString("vi-VN")}
                         </TableCell>
                         <TableCell>{entry.matches}</TableCell>
                         <TableCell>{entry.wins}</TableCell>
