@@ -178,8 +178,7 @@
   width: 100vw;
   overflow: hidden;
   border-bottom: 1px solid rgb(255 255 255 / 8%);
-  background: color-mix(in oklab, var(--card) 94%, transparent);
-  backdrop-filter: blur(16px);
+  background: var(--card);
 }
 
 @media (min-width: 48rem) {
