@@ -15,7 +15,6 @@ import {
   ArenaRankMark,
   ArenaRatingMovement,
 } from "@/components/shared/arena-rank-mark";
-import { ArenaNewsMarquee } from "@/components/shared/arena-news-marquee";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,10 +28,9 @@ import {
 } from "@/components/ui/table";
 import { isDatabaseConfigured } from "@/db";
 import { getFoundationSummary } from "@/repositories/dashboard.repository";
-import { buildArenaNews } from "@/services/arena-news";
 import { getLeaderboard } from "@/services/leaderboard.service";
-import { listActiveMatches, listMatchHistory } from "@/services/match.service";
-import { getTournament, listTournaments } from "@/services/tournament.service";
+import { listActiveMatches } from "@/services/match.service";
+import { listTournaments } from "@/services/tournament.service";
 
 import { TournamentCarousel } from "./tournament-carousel";
 
@@ -49,22 +47,32 @@ function initials(name: string) {
 
 export default async function OverviewPage() {
   const databaseReady = isDatabaseConfigured();
-  const [summary, activeMatches, leaderboard, tournaments, matchHistory] = databaseReady
-    ? await Promise.all([
-        getFoundationSummary(),
-        listActiveMatches(),
-        getLeaderboard({
-          period: "SEVEN_DAYS",
-          matchMode: "ALL",
-          sort: "RATING",
-        }),
-        listTournaments(),
-        listMatchHistory(),
-      ])
-    : [{ players: 0, teams: 0, pools: 0 }, [], [], [], []];
-  const tournamentStatusOrder = { ACTIVE: 0, FINISHED: 1, DRAFT: 2, CANCELLED: 3 } as const;
+  const [summary, activeMatches, leaderboard, tournaments] =
+    databaseReady
+      ? await Promise.all([
+          getFoundationSummary(),
+          listActiveMatches(),
+          getLeaderboard({
+            period: "SEVEN_DAYS",
+            matchMode: "ALL",
+            sort: "RATING",
+          }),
+          listTournaments(),
+        ])
+      : [{ players: 0, teams: 0, pools: 0 }, [], [], []];
+  const tournamentStatusOrder = {
+    ACTIVE: 0,
+    FINISHED: 1,
+    DRAFT: 2,
+    CANCELLED: 3,
+  } as const;
   const tournamentItems = [...tournaments]
-    .sort((left, right) => tournamentStatusOrder[left.status] - tournamentStatusOrder[right.status] || right.createdAt.getTime() - left.createdAt.getTime())
+    .sort(
+      (left, right) =>
+        tournamentStatusOrder[left.status] -
+          tournamentStatusOrder[right.status] ||
+        right.createdAt.getTime() - left.createdAt.getTime(),
+    )
     .map((tournament) => ({
       id: tournament.id,
       name: tournament.name,
@@ -75,20 +83,6 @@ export default async function OverviewPage() {
       fixtures: tournament.fixtures.length,
       createdAt: tournament.createdAt.toISOString(),
     }));
-  const completedTournamentDetails = databaseReady
-    ? (await Promise.all(
-        tournaments
-          .filter((tournament) => tournament.status === "FINISHED")
-          .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
-          .slice(0, 5)
-          .map((tournament) => getTournament(tournament.id)),
-      )).filter((tournament): tournament is NonNullable<typeof tournament> => Boolean(tournament))
-    : [];
-  const arenaNews = buildArenaNews({
-    matches: matchHistory,
-    tournaments: completedTournamentDetails,
-  });
-
   return (
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-3xl border border-primary/15 bg-card px-6 py-8 sm:px-9 sm:py-10">
@@ -126,8 +120,6 @@ export default async function OverviewPage() {
           </div>
         </div>
       </section>
-
-      <ArenaNewsMarquee items={arenaNews} />
 
       {!databaseReady ? (
         <Card className="border-amber-400/20 bg-amber-400/5">
@@ -219,10 +211,35 @@ export default async function OverviewPage() {
       {databaseReady ? (
         <section>
           <div className="mb-4 flex items-end justify-between gap-4">
-            <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Sảnh danh vọng</p><h2 className="mt-1 text-2xl font-bold">Giải đấu</h2></div>
-            <Button asChild className="shrink-0 font-bold text-primary hover:text-primary" variant="ghost"><Link href="/tournaments">Xem tất cả <ArrowRight className="size-4" /></Link></Button>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
+                Sảnh danh vọng
+              </p>
+              <h2 className="mt-1 text-2xl font-bold">Giải đấu</h2>
+            </div>
+            <Button
+              asChild
+              className="shrink-0 font-bold text-primary hover:text-primary"
+              variant="ghost"
+            >
+              <Link href="/tournaments">
+                Xem tất cả <ArrowRight className="size-4" />
+              </Link>
+            </Button>
           </div>
-          {tournamentItems.length > 0 ? <TournamentCarousel items={tournamentItems} /> : <Card className="border-dashed border-white/12 bg-transparent"><CardContent className="flex flex-col items-center py-10 text-center"><Trophy className="mb-3 size-7 text-muted-foreground" /><p className="font-bold">Chưa có giải đấu nào.</p><Button asChild className="mt-4" size="sm"><Link href="/tournaments">Tạo giải đầu tiên</Link></Button></CardContent></Card>}
+          {tournamentItems.length > 0 ? (
+            <TournamentCarousel items={tournamentItems} />
+          ) : (
+            <Card className="border-dashed border-white/12 bg-transparent">
+              <CardContent className="flex flex-col items-center py-10 text-center">
+                <Trophy className="mb-3 size-7 text-muted-foreground" />
+                <p className="font-bold">Chưa có giải đấu nào.</p>
+                <Button asChild className="mt-4" size="sm">
+                  <Link href="/tournaments">Tạo giải đầu tiên</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </section>
       ) : null}
 
@@ -290,9 +307,7 @@ export default async function OverviewPage() {
                             <span>{entry.playerName}</span>
                           </div>
                         </TableCell>
-                        <TableCell
-                          className="bg-primary/[0.035]"
-                        >
+                        <TableCell className="bg-primary/[0.035]">
                           <div className="flex items-center gap-2 whitespace-nowrap">
                             <span className="text-xl font-black tracking-tight tabular-nums">
                               {entry.rating.toLocaleString("vi-VN")}
