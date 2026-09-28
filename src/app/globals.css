@@ -157,7 +157,7 @@
 }
 
 .arena-news-marquee-track {
-  animation: arena-news-marquee 42s linear infinite;
+  animation: arena-news-marquee 24s linear infinite;
 }
 
 @media (min-width: 48rem) {
