@@ -4,6 +4,18 @@ export type KnockoutFixture<T> = {
   away: T;
 };
 
+export function getKnockoutBracketSeedOrder(size: number) {
+  if (size < 2 || !Number.isInteger(Math.log2(size))) {
+    throw new Error("Knockout cần 2, 4 hoặc 8 hạt giống.");
+  }
+  let order = [1, 2];
+  while (order.length < size) {
+    const nextSize = order.length * 2;
+    order = order.flatMap((seed) => [seed, nextSize + 1 - seed]);
+  }
+  return order;
+}
+
 export function generateKnockoutRound<T>(competitors: T[], round = 1): KnockoutFixture<T>[] {
   if (competitors.length < 2 || competitors.length % 2 !== 0) {
     throw new Error("Số đối thủ của một vòng knockout phải là số chẵn và từ 2 trở lên.");

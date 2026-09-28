@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { initialActionState } from "@/lib/action-state";
 import type { PlayerDto } from "@/repositories/player.repository";
 import type { PlayerRosterEntry } from "@/services/player.service";
+import { getArenaRank } from "@/services/arena-rank";
 
 import { savePlayerAction, setPlayerActiveAction } from "./actions";
 
@@ -224,7 +225,7 @@ export function PlayerManager({ players }: { players: PlayerRosterEntry[] }) {
                   </div>
                   <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                     <Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang thi đấu" : "Tạm nghỉ"}</Badge>
-                    <Badge variant="outline" className="border-white/12 bg-background/35 text-foreground">{player.isProvisional ? "Tân binh" : `Hạng #${player.rank}`}</Badge>
+                    <Badge variant="outline" className={`border-white/12 bg-background/35 ${getArenaRank(player.rating).tone}`}>{player.isProvisional ? `Tân binh · ${player.stats.matches}/5` : getArenaRank(player.rating).label}</Badge>
                     {player.stats.currentStreak > 0 ? (
                       <Badge variant="outline" className="gap-1 border-primary/25 bg-primary/5 text-primary">
                         <Swords className="size-3" /> {player.stats.currentStreak}W

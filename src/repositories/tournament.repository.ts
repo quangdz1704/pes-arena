@@ -15,7 +15,7 @@ import {
 } from "@/db/schema";
 
 import { generateRoundRobin } from "@/services/round-robin";
-import { generateKnockoutRound } from "@/services/knockout";
+import { generateKnockoutRound, getKnockoutBracketSeedOrder } from "@/services/knockout";
 import { getTournamentPlacements } from "@/services/tournament-results";
 
 export type PlayerTournamentHonor = {
@@ -52,7 +52,10 @@ export async function createKnockoutRecord(input: {
     id: randomUUID(),
     playerIds,
   }));
-  const fixtures = generateKnockoutRound(competitors);
+  const bracketCompetitors = getKnockoutBracketSeedOrder(competitors.length).map(
+    (seed) => competitors[seed - 1]!,
+  );
+  const fixtures = generateKnockoutRound(bracketCompetitors);
   const db = getDb();
 
   await db.batch([

@@ -95,6 +95,7 @@ export function TournamentForm({ players }: { players: PlayerOption[] }) {
       <p className="text-sm text-muted-foreground">
         {type === "KNOCKOUT" ? `Knockout cần 2, 4 hoặc 8 đối thủ. Đang có ${competitors.length}.` : `Cần tối thiểu 2 đối thủ. Đang có ${competitors.length} đối thủ.`}
       </p>
+      {type === "KNOCKOUT" ? <p className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">Bracket tự seed theo Điểm Arena: hạt giống mạnh sẽ được tách nhánh để chỉ có thể gặp nhau ở vòng sâu.</p> : null}
       <Button className="w-full" disabled={competitors.length < 2 || (type === "KNOCKOUT" && !isValidKnockoutSize)} type="submit">
         Tạo {type === "KNOCKOUT" ? "bracket knockout" : "League"} {mode === "ONE_V_ONE" ? "1v1" : "2v2"}
       </Button>

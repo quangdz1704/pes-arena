@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
 import { getPlayerProfile } from "@/services/player.service";
+import { getArenaRank } from "@/services/arena-rank";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +26,14 @@ export default async function PlayerDetailPage({ params }: { params: Promise<{ i
   const profile = await getPlayerProfile(id);
   if (!profile) notFound();
   const { player, stats, honors, rating, rank, isProvisional, ratedMatches, rivalries } = profile;
+  const arenaRank = getArenaRank(rating);
 
   return <div className="mx-auto max-w-6xl space-y-7">
     <Button asChild className="-mb-3" variant="ghost"><Link href="/players"><ArrowLeft className="size-4" /> Quay lại người chơi</Link></Button>
     <section className="grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
       <Card className="border-primary/25 bg-card/80"><CardContent className="flex flex-col items-center p-7 text-center sm:flex-row sm:text-left">
         <Avatar className="size-24 border-2 border-primary/30"><AvatarImage alt={player.name} src={player.avatarUrl ?? undefined} /><AvatarFallback className="bg-primary/10 text-2xl font-black text-primary">{initials(player.name)}</AvatarFallback></Avatar>
-        <div className="mt-4 min-w-0 sm:ml-5 sm:mt-0"><div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start"><h1 className="text-3xl font-black">{player.name}</h1><Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang chơi" : "Tạm nghỉ"}</Badge><Badge variant="outline">{isProvisional ? `Tân binh · ${ratedMatches}/5 trận` : `Hạng #${rank}`}</Badge></div><p className="mt-2 text-muted-foreground">{player.nickname || "Chưa có biệt danh"}</p><p className="mt-4 text-sm text-muted-foreground">{stats.matches > 0 ? `${stats.matches} trận tự tạo xếp hạng đã hoàn tất.` : "Chưa có trận tự tạo để thống kê."}</p></div>
+        <div className="mt-4 min-w-0 sm:ml-5 sm:mt-0"><div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start"><h1 className="text-3xl font-black">{player.name}</h1><Badge variant={player.isActive ? "default" : "secondary"}>{player.isActive ? "Đang chơi" : "Tạm nghỉ"}</Badge><Badge variant="outline" className={arenaRank.tone}>{isProvisional ? `Tân binh · ${ratedMatches}/5 trận` : arenaRank.label}</Badge>{!isProvisional ? <Badge variant="outline">Hạng #{rank}</Badge> : null}</div><p className="mt-2 text-muted-foreground">{player.nickname || "Chưa có biệt danh"}</p><p className="mt-4 text-sm text-muted-foreground">{stats.matches > 0 ? `${stats.matches} trận tự tạo xếp hạng đã hoàn tất.` : "Chưa có trận tự tạo để thống kê."}</p></div>
       </CardContent></Card>
       <Card className="border-white/10 bg-card/80"><CardContent className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-4"><Stat label={<span className="inline-flex items-center gap-1"><ArenaRankMark className="size-3.5" /> Điểm Arena</span>} value={rating.toLocaleString("vi-VN")} tone="text-primary" /><Stat label="Trận" value={stats.matches} /><Stat label="Winrate" value={`${stats.winRate}%`} /><Stat label="Chuỗi thắng" value={`${stats.currentStreak}W`} /></CardContent></Card>
     </section>

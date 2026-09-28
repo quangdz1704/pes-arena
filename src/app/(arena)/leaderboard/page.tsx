@@ -29,6 +29,7 @@ import type {
   LeaderboardPeriod,
 } from "@/services/leaderboard";
 import { getLeaderboard } from "@/services/leaderboard.service";
+import { arenaRankTiers } from "@/services/arena-rank";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +147,16 @@ export default async function LeaderboardPage({
                   Khi bằng điểm và đã gặp nhau từ 2 trận.
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-card/80">
+            <CardContent className="flex flex-wrap gap-2 p-4">
+              {arenaRankTiers.slice().reverse().map((tier, index, tiers) => (
+                <Badge className={`border-white/10 bg-background/45 ${tier.tone}`} key={tier.id} variant="outline">
+                  {tier.label} · {tier.minRating.toLocaleString("vi-VN")}{index < tiers.length - 1 ? `–${(tiers[index + 1]!.minRating - 1).toLocaleString("vi-VN")}` : "+"}
+                </Badge>
+              ))}
             </CardContent>
           </Card>
 

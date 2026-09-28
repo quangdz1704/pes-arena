@@ -1,6 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import { cancelTournamentRecord, createKnockoutRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
+import { listLeaderboardMatchRows } from "@/repositories/match.repository";
+import { arenaRating, buildLeaderboard } from "./leaderboard";
 
 export const createLeagueSchema = z.object({
   name: z.string().trim().min(3).max(150),
@@ -24,7 +26,13 @@ export const createKnockoutSchema = createLeagueSchema.refine(
   { path: ["competitors"], message: "Knockout cần 2, 4 hoặc 8 đối thủ." },
 );
 export async function createKnockout(input: z.infer<typeof createKnockoutSchema>) {
-  return createKnockoutRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: input.competitors });
+  const rows = await listLeaderboardMatchRows({ matchMode: "ALL", startDate: null });
+  const ratings = new Map(buildLeaderboard(rows, "RATING").map((entry) => [entry.playerId, entry.rating]));
+  const seededCompetitors = [...input.competitors].sort((left, right) => {
+    const averageRating = (competitor: string[]) => competitor.reduce((total, playerId) => total + (ratings.get(playerId) ?? arenaRating.initial), 0) / competitor.length;
+    return averageRating(right) - averageRating(left);
+  });
+  return createKnockoutRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: seededCompetitors });
 }
 export async function listTournaments() { return listTournamentRecords(); }
 export async function getTournament(tournamentId: string) {

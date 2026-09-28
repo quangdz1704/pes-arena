@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { generateKnockoutRound, getKnockoutRoundLabel } from "./knockout";
+import { generateKnockoutRound, getKnockoutBracketSeedOrder, getKnockoutRoundLabel } from "./knockout";
 
 describe("knockout", () => {
   it("pairs competitors in their seed order", () => {
@@ -8,6 +8,11 @@ describe("knockout", () => {
       { round: 1, home: "A", away: "B" },
       { round: 1, home: "C", away: "D" },
     ]);
+  });
+
+  it("places top seeds in separate knockout branches", () => {
+    expect(getKnockoutBracketSeedOrder(4)).toEqual([1, 4, 2, 3]);
+    expect(getKnockoutBracketSeedOrder(8)).toEqual([1, 8, 4, 5, 2, 7, 3, 6]);
   });
 
   it("rejects an incomplete bracket", () => {
