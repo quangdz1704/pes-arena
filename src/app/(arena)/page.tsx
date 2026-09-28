@@ -47,19 +47,18 @@ function initials(name: string) {
 
 export default async function OverviewPage() {
   const databaseReady = isDatabaseConfigured();
-  const [summary, activeMatches, leaderboard, tournaments] =
-    databaseReady
-      ? await Promise.all([
-          getFoundationSummary(),
-          listActiveMatches(),
-          getLeaderboard({
-            period: "SEVEN_DAYS",
-            matchMode: "ALL",
-            sort: "RATING",
-          }),
-          listTournaments(),
-        ])
-      : [{ players: 0, teams: 0, pools: 0 }, [], [], []];
+  const [summary, activeMatches, leaderboard, tournaments] = databaseReady
+    ? await Promise.all([
+        getFoundationSummary(),
+        listActiveMatches(),
+        getLeaderboard({
+          period: "SEVEN_DAYS",
+          matchMode: "ALL",
+          sort: "RATING",
+        }),
+        listTournaments(),
+      ])
+    : [{ players: 0, teams: 0, pools: 0 }, [], [], []];
   const tournamentStatusOrder = {
     ACTIVE: 0,
     FINISHED: 1,
@@ -87,7 +86,7 @@ export default async function OverviewPage() {
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-3xl border border-primary/15 bg-card px-6 py-8 sm:px-9 sm:py-10">
         <div className="absolute -right-20 -top-24 size-72 rounded-full bg-primary/10 blur-3xl" />
-        <div className="relative max-w-2xl">
+        <div className="relative max-w-4xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary">
             <Sparkles className="size-3.5" /> Tối nay đá PES
           </div>
@@ -95,7 +94,7 @@ export default async function OverviewPage() {
             Random công bằng.{" "}
             <span className="text-primary">Gáy có dữ liệu.</span>
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
             Chọn người, quay đội, nhập tỷ số. PES Arena sẽ lo phần lịch sử, BXH
             và drama còn lại.
           </p>
