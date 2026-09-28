@@ -2,14 +2,14 @@ import Link from "next/link";
 import {
   Crown,
   Medal,
-  Minus,
   Swords,
-  TrendingDown,
-  TrendingUp,
   Trophy,
 } from "lucide-react";
 
-import { ArenaRankMark } from "@/components/shared/arena-rank-mark";
+import {
+  ArenaRankMark,
+  ArenaRatingMovement,
+} from "@/components/shared/arena-rank-mark";
 import { DatabaseSetupNotice } from "@/components/shared/database-setup-notice";
 import { PageHeading } from "@/components/shared/page-heading";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +92,7 @@ export default async function LeaderboardPage({
   const entries = databaseReady
     ? await getLeaderboard({ ...filters, sort: "RATING" })
     : [];
+  const featuredEntries = entries.slice(0, 3);
   const periodLabel = getPeriodLabel(filters.period);
 
   return (
@@ -126,7 +127,9 @@ export default async function LeaderboardPage({
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="grid gap-3 p-4 text-sm sm:grid-cols-3">
               <div>
-                <p className="font-black text-primary">Điểm Arena</p>
+                <p className="flex items-center gap-2 font-black text-primary">
+                  <ArenaRankMark /> Điểm Arena
+                </p>
                 <p className="mt-1 text-muted-foreground">
                   Thắng đối thủ mạnh sẽ nhận nhiều điểm hơn.
                 </p>
@@ -160,8 +163,10 @@ export default async function LeaderboardPage({
             </Card>
           ) : (
             <>
-              <section className="grid gap-3 sm:grid-cols-3">
-                {entries.slice(0, 3).map((entry, index) => {
+              <section
+                className={`grid gap-3 sm:grid-cols-2 ${featuredEntries.length === 3 ? "lg:grid-cols-3" : ""}`}
+              >
+                {featuredEntries.map((entry, index) => {
                   const Icon =
                     index === 0 ? Crown : index === 1 ? Trophy : Medal;
                   return (
@@ -169,44 +174,59 @@ export default async function LeaderboardPage({
                       key={entry.playerId}
                       className={
                         index === 0
-                          ? "border-primary/40 bg-primary/8"
+                          ? "overflow-hidden border-primary/30 bg-primary/[0.055]"
                           : "border-white/10 bg-card/80"
                       }
                     >
-                      <CardContent className="flex items-center gap-4 p-5">
-                        <Icon
-                          className={
-                            index === 0
-                              ? "size-8 text-primary"
-                              : "size-7 text-amber-300"
-                          }
-                        />
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Avatar>
-                            <AvatarImage
-                              alt={entry.playerName}
-                              src={entry.avatarUrl ?? undefined}
-                            />
-                            <AvatarFallback className="bg-primary/10 font-bold text-primary">
-                              {initials(entry.playerName)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold tracking-[0.16em] text-muted-foreground">
-                              {entry.isProvisional
-                                ? `ĐANG HIỆU CHỈNH · CÒN ${5 - entry.ratedMatches} TRẬN`
-                                : `HẠNG ${entry.rank}`}
-                            </p>
-                            <p className="truncate text-lg font-black">
-                              {entry.playerName}
-                            </p>
-                            <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <ArenaRankMark className="size-4" />
-                              {entry.rating.toLocaleString("vi-VN")} Điểm Arena
-                              <RatingMovement delta={entry.ratingDelta} />
-                              <span>· {periodLabel}</span>
-                            </p>
+                      <CardContent className="p-5">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar className="size-11">
+                              <AvatarImage
+                                alt={entry.playerName}
+                                src={entry.avatarUrl ?? undefined}
+                              />
+                              <AvatarFallback className="bg-primary/10 font-bold text-primary">
+                                {initials(entry.playerName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate text-lg font-black">
+                                {entry.playerName}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {entry.isProvisional
+                                  ? `Còn ${5 - entry.ratedMatches} trận để chốt hạng`
+                                  : `Hạng #${entry.rank}`}
+                              </p>
+                            </div>
                           </div>
+                          <span
+                            className={
+                              index === 0
+                                ? "flex size-9 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary"
+                                : "flex size-9 shrink-0 items-center justify-center rounded-full border border-amber-300/15 bg-amber-300/8 text-amber-300"
+                            }
+                          >
+                            <Icon className="size-5" />
+                          </span>
+                        </div>
+
+                        <div className="mt-5 flex items-end justify-between gap-4 border-t border-white/8 pt-4">
+                          <div>
+                            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                              <ArenaRankMark className="size-4" /> Điểm Arena
+                            </p>
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <span className="text-3xl font-black leading-none tracking-tight tabular-nums">
+                                {entry.rating.toLocaleString("vi-VN")}
+                              </span>
+                              <ArenaRatingMovement delta={entry.ratingDelta} />
+                            </div>
+                          </div>
+                          <p className="shrink-0 whitespace-nowrap pb-0.5 text-right text-[11px] text-muted-foreground">
+                            Kỳ tính: {periodLabel}
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -221,7 +241,7 @@ export default async function LeaderboardPage({
                     key={entry.playerId}
                   >
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
                           <Avatar>
                             <AvatarImage
@@ -233,25 +253,26 @@ export default async function LeaderboardPage({
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-xs font-bold tracking-[0.16em] text-primary">
+                            <p className="text-xs font-medium text-muted-foreground">
                               {entry.isProvisional
-                                ? `CÒN ${5 - entry.ratedMatches} TRẬN ĐỂ XẾP HẠNG`
-                                : `HẠNG ${entry.rank}`}
+                                ? `Còn ${5 - entry.ratedMatches} trận để chốt hạng`
+                                : `Hạng #${entry.rank}`}
                             </p>
                             <p className="truncate text-lg font-black">
                               {entry.playerName}
                             </p>
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2 rounded-lg bg-primary/10 px-3 py-1 text-right">
-                          <ArenaRankMark />
-                          <div>
-                            <p className="flex items-center justify-end gap-1 font-black text-primary">
-                              {entry.rating.toLocaleString("vi-VN")}
-                              <RatingMovement delta={entry.ratingDelta} />
-                            </p>
-                            <p className="text-xs text-muted-foreground">Điểm Arena</p>
-                          </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between rounded-xl border border-white/8 bg-background/35 px-3 py-3">
+                        <p className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                          <ArenaRankMark className="size-4" /> Điểm Arena
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-black leading-none tracking-tight tabular-nums">
+                            {entry.rating.toLocaleString("vi-VN")}
+                          </span>
+                          <ArenaRatingMovement delta={entry.ratingDelta} />
                         </div>
                       </div>
                       <div className="leaderboard-mobile-stats mt-3 gap-2 border-t border-white/10 pt-3 text-center text-sm">
@@ -284,9 +305,9 @@ export default async function LeaderboardPage({
                         <TableRow>
                           <TableHead>#</TableHead>
                           <TableHead>Người chơi</TableHead>
-                          <TableHead className="rounded-t-lg bg-primary/12 text-primary">
-                            <span className="flex items-center gap-2">
-                              <ArenaRankMark /> Điểm Arena
+                          <TableHead className="bg-primary/[0.045]">
+                            <span className="flex items-center gap-1.5 font-bold text-foreground">
+                              <ArenaRankMark className="size-4" /> Điểm Arena
                             </span>
                           </TableHead>
                           <TableHead>Trận</TableHead>
@@ -301,7 +322,7 @@ export default async function LeaderboardPage({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {entries.map((entry, index) => (
+                        {entries.map((entry) => (
                           <TableRow key={entry.playerId}>
                             <TableCell className="font-black text-primary">
                               {entry.isProvisional ? "Tạm" : entry.rank}
@@ -321,18 +342,13 @@ export default async function LeaderboardPage({
                               </div>
                             </TableCell>
                             <TableCell
-                              className={`bg-primary/8 ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}
+                              className="bg-primary/[0.035]"
                             >
                               <div className="flex items-center gap-2 whitespace-nowrap">
-                                <span className="text-xl font-black tracking-tight text-primary">
+                                <span className="text-xl font-black tracking-tight text-foreground tabular-nums">
                                   {entry.rating.toLocaleString("vi-VN")}
                                 </span>
-                                <RatingMovement delta={entry.ratingDelta} />
-                                {entry.isProvisional ? (
-                                  <span className="text-[10px] font-bold text-muted-foreground">
-                                    mới
-                                  </span>
-                                ) : null}
+                                <ArenaRatingMovement delta={entry.ratingDelta} />
                               </div>
                             </TableCell>
                             <TableCell>{entry.matches}</TableCell>
@@ -424,21 +440,6 @@ function Stat({
         {label}
       </p>
     </div>
-  );
-}
-
-function RatingMovement({ delta }: { delta: number }) {
-  const Icon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
-  const tone = delta > 0 ? "text-primary" : delta < 0 ? "text-rose-400" : "text-muted-foreground";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-0.5 text-xs font-black ${tone}`}
-      title={delta > 0 ? `Tăng ${delta} điểm` : delta < 0 ? `Giảm ${Math.abs(delta)} điểm` : "Không đổi"}
-    >
-      <Icon className="size-3.5" />
-      {Math.abs(delta)}
-    </span>
   );
 }
 

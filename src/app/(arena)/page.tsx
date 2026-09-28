@@ -11,7 +11,10 @@ import {
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArenaRankMark } from "@/components/shared/arena-rank-mark";
+import {
+  ArenaRankMark,
+  ArenaRatingMovement,
+} from "@/components/shared/arena-rank-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -233,9 +236,9 @@ export default async function OverviewPage() {
                     <TableRow>
                       <TableHead>#</TableHead>
                       <TableHead>Người chơi</TableHead>
-                      <TableHead className="bg-primary/12 text-primary rounded-t-lg">
-                        <span className="flex items-center gap-2">
-                          <ArenaRankMark /> Điểm Arena
+                      <TableHead className="bg-primary/[0.045]">
+                        <span className="flex items-center gap-1.5 font-bold text-foreground">
+                          <ArenaRankMark className="size-4" /> Điểm Arena
                         </span>
                       </TableHead>
                       <TableHead>Trận</TableHead>
@@ -250,7 +253,7 @@ export default async function OverviewPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leaderboard.slice(0, 5).map((entry, index, entries) => (
+                    {leaderboard.slice(0, 5).map((entry) => (
                       <TableRow key={entry.playerId}>
                         <TableCell className="font-black text-primary">
                           {entry.isProvisional ? "—" : entry.rank}
@@ -270,9 +273,14 @@ export default async function OverviewPage() {
                           </div>
                         </TableCell>
                         <TableCell
-                          className={`bg-primary/8 font-black text-primary ${index === entries.length - 1 ? "rounded-b-lg" : ""}`}
+                          className="bg-primary/[0.035]"
                         >
-                          {entry.rating.toLocaleString("vi-VN")}
+                          <div className="flex items-center gap-2 whitespace-nowrap">
+                            <span className="text-xl font-black tracking-tight tabular-nums">
+                              {entry.rating.toLocaleString("vi-VN")}
+                            </span>
+                            <ArenaRatingMovement delta={entry.ratingDelta} />
+                          </div>
                         </TableCell>
                         <TableCell>{entry.matches}</TableCell>
                         <TableCell>{entry.wins}</TableCell>
