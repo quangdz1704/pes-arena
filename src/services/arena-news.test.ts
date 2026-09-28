@@ -10,7 +10,7 @@ describe("arena news", () => {
     });
 
     expect(news).toHaveLength(2);
-    expect(news[0]).toMatchObject({ kind: "TOURNAMENT", headline: "Cường vô địch Cúp Trung Thu" });
-    expect(news[1]).toMatchObject({ kind: "FRIENDLY", headline: "Quang hạ Cường 3–0", detail: "Giao hữu · tính Điểm Arena" });
+    expect(news[0]).toMatchObject({ kind: "TOURNAMENT", headline: "Cường lên ngôi Cúp Trung Thu, ai còn dám cãi?" });
+    expect(news[1]).toMatchObject({ kind: "FRIENDLY", headline: "Quang thị uy 3–0, Cường chỉ biết nghe tiếng gáy", detail: "Giao hữu · tính Điểm Arena" });
   });
 });
