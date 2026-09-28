@@ -150,6 +150,16 @@
   display: none;
 }
 
+@keyframes arena-news-marquee {
+  to {
+    transform: translateX(calc(-50% - 0.375rem));
+  }
+}
+
+.arena-news-marquee-track {
+  animation: arena-news-marquee 42s linear infinite;
+}
+
 @media (min-width: 48rem) {
   .leaderboard-mobile-list {
     display: none;
@@ -168,5 +178,9 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .arena-news-marquee-track {
+    animation: none;
   }
 }
