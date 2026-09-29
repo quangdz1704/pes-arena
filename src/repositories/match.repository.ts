@@ -30,7 +30,9 @@ export type MatchTeamDto = {
   id: string;
   name: string;
   shortName: string;
+  type: "CLUB" | "NATIONAL";
   tier: "S" | "A" | "B" | "C";
+  country: string;
   rating: number;
 };
 
@@ -45,6 +47,7 @@ export type MatchTeamPoolDto = {
 export type MatchSetupDto = {
   players: MatchPlayerDto[];
   pools: MatchTeamPoolDto[];
+  recentTeamIds: string[];
 };
 
 export type MatchSideDto = {
@@ -110,18 +113,27 @@ function toTeamDto(team: typeof teams.$inferSelect): MatchTeamDto {
     id: team.id,
     name: team.name,
     shortName: team.shortName,
+    type: team.type,
     tier: team.tier,
+    country: team.country,
     rating: team.rating,
   };
 }
 
 export async function getMatchSetupRecords(): Promise<MatchSetupDto> {
   const db = getDb();
-  const [playerRows, poolRows, teamRows, memberships] = await Promise.all([
+  const [playerRows, poolRows, teamRows, memberships, recentTeamRows] = await Promise.all([
     db.select().from(players).where(eq(players.isActive, true)).orderBy(asc(players.name)),
     db.select().from(teamPools).where(eq(teamPools.isActive, true)).orderBy(asc(teamPools.name)),
     db.select().from(teams).where(eq(teams.isActive, true)).orderBy(desc(teams.rating)),
     db.select().from(teamPoolMembers),
+    db
+      .select({ teamId: matchSides.teamId })
+      .from(matchSides)
+      .innerJoin(matches, eq(matchSides.matchId, matches.id))
+      .where(inArray(matches.status, ["PLAYING", "FINISHED"]))
+      .orderBy(desc(matches.createdAt), asc(matchSides.side))
+      .limit(8),
   ]);
   const teamById = new Map(teamRows.map((team) => [team.id, toTeamDto(team)]));
   const teamIdsByPool = new Map<string, string[]>();
@@ -143,6 +155,7 @@ export async function getMatchSetupRecords(): Promise<MatchSetupDto> {
         .map((teamId) => teamById.get(teamId))
         .filter((team): team is MatchTeamDto => Boolean(team)),
     })),
+    recentTeamIds: recentTeamRows.flatMap((row) => row.teamId ? [row.teamId] : []),
   };
 }
 

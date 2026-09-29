@@ -13,8 +13,8 @@ const match: MatchDetailDto = {
   playedAt: "2026-09-23T10:00:00.000Z",
   createdAt: "2026-09-23T09:00:00.000Z",
   sides: [
-    { id: "a", side: "A", score: 5, rerollCount: 0, team: { id: "ta", name: "Arsenal", shortName: "ARS", tier: "A", rating: 87 }, players: [{ id: "p1", name: "Quang", nickname: null, avatarUrl: null }] },
-    { id: "b", side: "B", score: 1, rerollCount: 0, team: { id: "tb", name: "Chelsea", shortName: "CHE", tier: "A", rating: 86 }, players: [{ id: "p2", name: "Nam", nickname: null, avatarUrl: null }] },
+    { id: "a", side: "A", score: 5, rerollCount: 0, team: { id: "ta", name: "Arsenal", shortName: "ARS", type: "CLUB", tier: "A", country: "England", rating: 87 }, players: [{ id: "p1", name: "Quang", nickname: null, avatarUrl: null }] },
+    { id: "b", side: "B", score: 1, rerollCount: 0, team: { id: "tb", name: "Chelsea", shortName: "CHE", type: "CLUB", tier: "A", country: "England", rating: 86 }, players: [{ id: "p2", name: "Nam", nickname: null, avatarUrl: null }] },
   ],
   notes: [],
 };

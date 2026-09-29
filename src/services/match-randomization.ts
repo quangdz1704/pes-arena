@@ -72,6 +72,27 @@ export function pickPureTeams<T extends { id: string }>(
   return pickUnique(teams, 2, random) as [T, T];
 }
 
+function getCooldownCandidates<T extends { id: string }>(
+  teams: readonly T[],
+  recentTeamIds: readonly string[],
+) {
+  const recentlyUsed = new Set(recentTeamIds.slice(0, 8));
+  const unseenRecently = teams.filter((team) => !recentlyUsed.has(team.id));
+  if (unseenRecently.length >= 2) return unseenRecently;
+
+  const lastMatchTeamIds = new Set(recentTeamIds.slice(0, 2));
+  const notInLastMatch = teams.filter((team) => !lastMatchTeamIds.has(team.id));
+  return notInLastMatch.length >= 2 ? notInLastMatch : teams;
+}
+
+export function pickFreshPureTeams<T extends { id: string }>(
+  teams: readonly T[],
+  recentTeamIds: readonly string[],
+  random: RandomSource = Math.random,
+) {
+  return pickPureTeams(getCooldownCandidates(teams, recentTeamIds), random);
+}
+
 export function pickBalancedTeams<T extends RandomizableTeam>(
   teams: readonly T[],
   random: RandomSource = Math.random,
@@ -92,4 +113,12 @@ export function pickBalancedTeams<T extends RandomizableTeam>(
   );
 
   return [first, pickUnique(closest, 1, random)[0]!] as [T, T];
+}
+
+export function pickFreshBalancedTeams<T extends RandomizableTeam>(
+  teams: readonly T[],
+  recentTeamIds: readonly string[],
+  random: RandomSource = Math.random,
+) {
+  return pickBalancedTeams(getCooldownCandidates(teams, recentTeamIds), random);
 }

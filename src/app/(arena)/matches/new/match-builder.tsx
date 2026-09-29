@@ -23,17 +23,19 @@ import type {
   MatchTeamDto,
 } from "@/repositories/match.repository";
 import {
-  pickBalancedTeams,
-  pickPureTeams,
+  pickFreshBalancedTeams,
+  pickFreshPureTeams,
   pickUnique,
   shufflePairs,
 } from "@/services/match-randomization";
+import { getTeamCompetition, listTeamCompetitions } from "@/services/team-competition";
 
 import { startMatchAction, type MatchActionState } from "../actions";
 
 type MatchMode = "ONE_V_ONE" | "TWO_V_TWO";
 type RandomMode = "PURE" | "BALANCED";
 type MatchSetupMode = "RANDOM" | "MANUAL";
+type RandomTierFilter = "ALL" | "S";
 
 const initialMatchState: MatchActionState = initialActionState;
 
@@ -154,6 +156,8 @@ export function MatchBuilder({
   const [poolId, setPoolId] = useState(setup.pools[0]?.id ?? "");
   const [matchSetupMode, setMatchSetupMode] = useState<MatchSetupMode>("RANDOM");
   const [randomMode, setRandomMode] = useState<RandomMode>("BALANCED");
+  const [randomTierFilter, setRandomTierFilter] = useState<RandomTierFilter>("ALL");
+  const [competitionFilter, setCompetitionFilter] = useState("ALL");
   const [teamIds, setTeamIds] = useState<
     [string | undefined, string | undefined] | null
   >(null);
@@ -175,6 +179,17 @@ export function MatchBuilder({
   const teamById = useMemo(
     () => new Map(selectedPool?.teams.map((team) => [team.id, team]) ?? []),
     [selectedPool],
+  );
+  const availableCompetitions = useMemo(
+    () => listTeamCompetitions(selectedPool?.teams ?? []),
+    [selectedPool],
+  );
+  const randomCandidateTeams = useMemo(
+    () => (selectedPool?.teams ?? []).filter((team) =>
+      (randomTierFilter === "ALL" || team.tier === randomTierFilter) &&
+      (competitionFilter === "ALL" || getTeamCompetition(team) === competitionFilter),
+    ),
+    [competitionFilter, randomTierFilter, selectedPool],
   );
   const selectedTeams = teamIds
     ? ([
@@ -257,6 +272,7 @@ export function MatchBuilder({
     setPoolId(nextPoolId);
     setTeamIds(null);
     setRerollCount(0);
+    setCompetitionFilter("ALL");
   }
 
   function selectMatchSetupMode(nextMode: MatchSetupMode) {
@@ -287,10 +303,14 @@ export function MatchBuilder({
   function randomTeams() {
     if (!selectedPool) return;
     try {
-      const pick = randomMode === "PURE" ? pickPureTeams : pickBalancedTeams;
-      const [first, second] = pick(selectedPool.teams);
+      const recentTeamIds = [
+        ...(teamIds?.filter((id): id is string => Boolean(id)) ?? []),
+        ...setup.recentTeamIds,
+      ];
+      const pick = randomMode === "PURE" ? pickFreshPureTeams : pickFreshBalancedTeams;
+      const [first, second] = pick(randomCandidateTeams, recentTeamIds);
       setIsRolling(true);
-      const preview = pick(selectedPool.teams);
+      const preview = pick(randomCandidateTeams, recentTeamIds);
       setTeamIds([preview[0].id, preview[1].id]);
       window.setTimeout(() => {
         setTeamIds([first.id, second.id]);
@@ -524,11 +544,37 @@ export function MatchBuilder({
                   </button>
                 ))}
               </div>
+              <div className="rounded-xl border border-white/10 bg-background/35 p-3">
+                <p className="text-xs font-bold tracking-[0.14em] text-muted-foreground">BỘ LỌC ĐỘI RANDOM</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["ALL", "S"] as const).map((value) => (
+                    <button
+                      className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${randomTierFilter === value ? "border-primary bg-primary/10 text-primary" : "border-white/10 text-muted-foreground hover:border-white/25"}`}
+                      key={value}
+                      onClick={() => { setRandomTierFilter(value); setTeamIds(null); setRerollCount(0); }}
+                      type="button"
+                    >
+                      {value === "ALL" ? "Mọi tier" : "⭐ Siêu sao · Tier S"}
+                    </button>
+                  ))}
+                </div>
+                <label className="mt-3 block text-xs font-semibold text-muted-foreground" htmlFor="random-competition">Giải đấu</label>
+                <select
+                  className="mt-1.5 h-10 w-full rounded-lg border border-white/10 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  id="random-competition"
+                  onChange={(event) => { setCompetitionFilter(event.target.value); setTeamIds(null); setRerollCount(0); }}
+                  value={competitionFilter}
+                >
+                  <option value="ALL">Tất cả giải đấu</option>
+                  {availableCompetitions.map((competition) => <option key={competition} value={competition}>{competition}</option>)}
+                </select>
+                <p className="mt-2 text-xs text-muted-foreground">{randomCandidateTeams.length} đội phù hợp. Random sẽ tránh các đội vừa xuất hiện nếu pool còn lựa chọn khác.</p>
+              </div>
               <Button
                 type="button"
                 size="lg"
                 onClick={randomTeams}
-                disabled={!selectedPool || selectedPool.teams.length < 2 || isRolling}
+                disabled={!selectedPool || randomCandidateTeams.length < 2 || isRolling}
                 className="h-12 w-full rounded-xl font-black"
               >
                 {isRolling ? <RefreshCw className="size-5 animate-spin" /> : <Dices className="size-5" />}

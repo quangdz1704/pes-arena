@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   pickBalancedTeams,
+  pickFreshPureTeams,
   pickPureTeams,
   shufflePairs,
 } from "./match-randomization";
@@ -25,6 +26,12 @@ describe("match randomization", () => {
 
     expect(first.tier).toBe(second.tier);
     expect(Math.abs(first.rating - second.rating)).toBe(1);
+  });
+
+  it("avoids teams from recent matches when enough alternatives exist", () => {
+    const [first, second] = pickFreshPureTeams(teams, ["real", "barca"], () => 0);
+
+    expect([first.id, second.id].sort()).toEqual(["arsenal", "everton"]);
   });
 
   it("shuffles four players into a pairing different from the current one", () => {
