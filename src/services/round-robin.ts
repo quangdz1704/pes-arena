@@ -24,3 +24,16 @@ export function generateRoundRobin<T>(competitors: T[]): FixturePair<T>[] {
 
   return fixtures;
 }
+
+export function generateHomeAndAwayRoundRobin<T>(competitors: T[]): FixturePair<T>[] {
+  const firstLeg = generateRoundRobin(competitors);
+  const firstLegRounds = Math.max(...firstLeg.map((fixture) => fixture.round));
+  return [
+    ...firstLeg,
+    ...firstLeg.map((fixture) => ({
+      round: fixture.round + firstLegRounds,
+      home: fixture.away,
+      away: fixture.home,
+    })),
+  ];
+}

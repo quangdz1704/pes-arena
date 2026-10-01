@@ -54,7 +54,7 @@ export default async function TournamentDetailPage({
         <PageHeading
           eyebrow={`${tournament.type === "KNOCKOUT" ? "Knockout" : "League"} ${tournament.matchMode === "ONE_V_ONE" ? "1v1" : "2v2"}`}
           title={tournament.name}
-          description={`${tournament.competitors.length} đối thủ · ${tournament.fixtures.length} trận · ${tournament.status}`}
+          description={`${tournament.competitors.length} đối thủ · ${tournament.fixtures.length} trận${tournament.type === "LEAGUE" && tournament.isHomeAndAway ? " · lượt đi–về" : ""} · ${tournament.status}`}
           action={tournament.status === "ACTIVE" ? <CancelTournamentButton tournamentId={tournament.id} /> : undefined}
         />
       </div>
@@ -112,7 +112,7 @@ export default async function TournamentDetailPage({
               <div className="mt-3 divide-y rounded-md border">
                 {fixtures.map((fixture) => (
                   <div className="flex items-center justify-between gap-4 px-4 py-3" key={fixture.id}>
-                    <p className="font-semibold">{fixture.homeName} <span className="text-muted-foreground">vs</span> {fixture.awayName}</p>
+                    <p className="font-semibold">{fixture.homeName}{fixture.homeTeamName ? <span className="text-sm font-medium text-primary"> · {fixture.homeTeamName}</span> : null} <span className="text-muted-foreground">vs</span> {fixture.awayName}{fixture.awayTeamName ? <span className="text-sm font-medium text-primary"> · {fixture.awayTeamName}</span> : null}</p>
                     {fixture.matchId ? (
                       <Link className="shrink-0 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground" href={`/matches/${fixture.matchId}`}>
                         {fixture.matchStatus === "FINISHED" ? `${fixture.homeScore} - ${fixture.awayScore}` : "Vào trận"}

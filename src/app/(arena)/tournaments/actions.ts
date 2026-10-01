@@ -8,16 +8,20 @@ import { cancelTournament, createKnockout, createKnockoutSchema, createLeague, c
 export async function createTournamentAction(_: ActionState, formData: FormData): Promise<ActionState> {
   try {
     const competitors = JSON.parse(String(formData.get("competitors") ?? "[]")) as unknown;
+    const teamIds = JSON.parse(String(formData.get("teamIds") ?? "[]")) as unknown;
     const input = {
       name: formData.get("name"),
       matchMode: formData.get("matchMode"),
       competitors,
+      teamPoolId: formData.get("teamPoolId"),
+      teamIds,
+      isHomeAndAway: formData.get("isHomeAndAway") === "true",
     };
     const type = z.enum(["LEAGUE", "KNOCKOUT"]).parse(formData.get("type"));
     if (type === "KNOCKOUT") await createKnockout(createKnockoutSchema.parse(input));
     else await createLeague(createLeagueSchema.parse(input));
     revalidatePath("/tournaments");
-    return { status: "success", message: type === "KNOCKOUT" ? "Đã tạo bracket knockout." : "Đã tạo giải và sinh lịch vòng tròn." };
+    return { status: "success", message: type === "KNOCKOUT" ? "Đã tạo bracket knockout và gán đội thi đấu." : "Đã tạo giải, gán đội và sinh lịch thi đấu." };
   } catch (error) {
     return toActionError(error);
   }

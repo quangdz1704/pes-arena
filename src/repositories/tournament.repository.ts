@@ -8,13 +8,14 @@ import {
   players,
   matches,
   matchSides,
+  teams,
   tournamentCompetitorPlayers,
   tournamentCompetitors,
   tournamentFixtures,
   tournaments,
 } from "@/db/schema";
 
-import { generateRoundRobin } from "@/services/round-robin";
+import { generateHomeAndAwayRoundRobin, generateRoundRobin } from "@/services/round-robin";
 import { generateKnockoutRound, getKnockoutBracketSeedOrder } from "@/services/knockout";
 import { getTournamentPlacements } from "@/services/tournament-results";
 
@@ -29,13 +30,16 @@ export async function createLeagueRecord(input: {
   name: string;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
   competitorPlayerIds: string[][];
+  teamPoolId: string;
+  teamIds: string[];
+  isHomeAndAway: boolean;
 }) {
   const tournamentId = randomUUID();
-  const competitors = input.competitorPlayerIds.map((playerIds) => ({ id: randomUUID(), playerIds }));
-  const fixtures = generateRoundRobin(competitors);
+  const competitors = input.competitorPlayerIds.map((playerIds, index) => ({ id: randomUUID(), playerIds, teamId: input.teamIds[index]! }));
+  const fixtures = input.isHomeAndAway ? generateHomeAndAwayRoundRobin(competitors) : generateRoundRobin(competitors);
   await getDb().batch([
-    getDb().insert(tournaments).values({ id: tournamentId, name: input.name, type: "LEAGUE", matchMode: input.matchMode, status: "ACTIVE" }),
-    getDb().insert(tournamentCompetitors).values(competitors.map((competitor, index) => ({ id: competitor.id, tournamentId, displayName: `Competitor ${index + 1}`, seed: index + 1 }))),
+    getDb().insert(tournaments).values({ id: tournamentId, name: input.name, type: "LEAGUE", matchMode: input.matchMode, teamPoolId: input.teamPoolId, isHomeAndAway: input.isHomeAndAway, status: "ACTIVE" }),
+    getDb().insert(tournamentCompetitors).values(competitors.map((competitor, index) => ({ id: competitor.id, tournamentId, displayName: `Competitor ${index + 1}`, teamId: competitor.teamId, seed: index + 1 }))),
     getDb().insert(tournamentCompetitorPlayers).values(competitors.flatMap((competitor) => competitor.playerIds.map((playerId, index) => ({ competitorId: competitor.id, playerId, position: index + 1 })))),
     getDb().insert(tournamentFixtures).values(fixtures.map((fixture) => ({ tournamentId, round: fixture.round, homeCompetitorId: fixture.home.id, awayCompetitorId: fixture.away.id }))),
   ]);
@@ -46,11 +50,15 @@ export async function createKnockoutRecord(input: {
   name: string;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
   competitorPlayerIds: string[][];
+  teamPoolId: string;
+  teamIds: string[];
+  isHomeAndAway: boolean;
 }) {
   const tournamentId = randomUUID();
-  const competitors = input.competitorPlayerIds.map((playerIds) => ({
+  const competitors = input.competitorPlayerIds.map((playerIds, index) => ({
     id: randomUUID(),
     playerIds,
+    teamId: input.teamIds[index]!,
   }));
   const bracketCompetitors = getKnockoutBracketSeedOrder(competitors.length).map(
     (seed) => competitors[seed - 1]!,
@@ -64,6 +72,8 @@ export async function createKnockoutRecord(input: {
       name: input.name,
       type: "KNOCKOUT",
       matchMode: input.matchMode,
+      teamPoolId: input.teamPoolId,
+      isHomeAndAway: input.isHomeAndAway,
       status: "ACTIVE",
     }),
     db.insert(tournamentCompetitors).values(
@@ -71,6 +81,7 @@ export async function createKnockoutRecord(input: {
         id: competitor.id,
         tournamentId,
         displayName: `Competitor ${index + 1}`,
+        teamId: competitor.teamId,
         seed: index + 1,
       })),
     ),
@@ -231,7 +242,7 @@ export async function getTournamentRecord(tournamentId: string) {
     .orderBy(asc(tournamentCompetitors.seed));
   const competitorIds = competitors.map((competitor) => competitor.id);
 
-  const [competitorPlayers, fixtures] = await Promise.all([
+  const [competitorPlayers, fixtures, competitorTeams] = await Promise.all([
     competitorIds.length
       ? db
           .select({
@@ -250,6 +261,9 @@ export async function getTournamentRecord(tournamentId: string) {
       .from(tournamentFixtures)
       .where(eq(tournamentFixtures.tournamentId, tournamentId))
       .orderBy(asc(tournamentFixtures.round)),
+    competitors.some((competitor) => competitor.teamId)
+      ? db.select({ id: teams.id, name: teams.name, shortName: teams.shortName }).from(teams).where(inArray(teams.id, competitors.flatMap((competitor) => competitor.teamId ? [competitor.teamId] : [])))
+      : Promise.resolve([]),
   ]);
 
   const nameByCompetitorId = new Map(
@@ -261,6 +275,8 @@ export async function getTournamentRecord(tournamentId: string) {
       .map((player) => player.name);
     if (names.length) nameByCompetitorId.set(competitor.id, names.join(" + "));
   }
+  const teamById = new Map(competitorTeams.map((team) => [team.id, team]));
+  const teamByCompetitorId = new Map(competitors.flatMap((competitor) => competitor.teamId ? [[competitor.id, teamById.get(competitor.teamId)]] as const : []));
 
   const matchIds = fixtures.flatMap((fixture) => fixture.matchId ? [fixture.matchId] : []);
   const [fixtureMatches, fixtureScores] = await Promise.all([
@@ -285,6 +301,8 @@ export async function getTournamentRecord(tournamentId: string) {
       id: competitor.id,
       name: nameByCompetitorId.get(competitor.id) ?? competitor.displayName,
       seed: competitor.seed,
+      teamId: competitor.teamId,
+      teamName: competitor.teamId ? teamById.get(competitor.teamId)?.name ?? null : null,
       playerIds: competitorPlayers
         .filter((player) => player.competitorId === competitor.id)
         .map((player) => player.playerId),
@@ -300,6 +318,8 @@ export async function getTournamentRecord(tournamentId: string) {
       awayScore: fixture.matchId ? scoresByMatchId.get(fixture.matchId)?.B ?? null : null,
       homeName: nameByCompetitorId.get(fixture.homeCompetitorId) ?? "Chưa rõ",
       awayName: nameByCompetitorId.get(fixture.awayCompetitorId) ?? "Chưa rõ",
+      homeTeamName: teamByCompetitorId.get(fixture.homeCompetitorId)?.name ?? null,
+      awayTeamName: teamByCompetitorId.get(fixture.awayCompetitorId)?.name ?? null,
     })),
   };
 }
@@ -421,7 +441,7 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
     .where(eq(tournamentFixtures.id, fixtureId));
   if (!fixture) return null;
   const [tournament] = await db
-    .select({ matchMode: tournaments.matchMode, status: tournaments.status })
+    .select({ matchMode: tournaments.matchMode, status: tournaments.status, teamPoolId: tournaments.teamPoolId })
     .from(tournaments)
     .where(eq(tournaments.id, fixture.tournamentId));
   if (!tournament) return null;
@@ -439,16 +459,24 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
   const homePlayers = getPlayers(fixture.homeCompetitorId);
   const awayPlayers = getPlayers(fixture.awayCompetitorId);
   if (!homePlayers.length || !awayPlayers.length) return null;
+  const assignedCompetitors = await db
+    .select({ id: tournamentCompetitors.id, teamId: tournamentCompetitors.teamId })
+    .from(tournamentCompetitors)
+    .where(inArray(tournamentCompetitors.id, [fixture.homeCompetitorId, fixture.awayCompetitorId]));
+  const teamIdByCompetitor = new Map(assignedCompetitors.map((competitor) => [competitor.id, competitor.teamId]));
 
   return {
     id: fixture.id,
     tournamentId: fixture.tournamentId,
     matchMode: tournament.matchMode,
     tournamentStatus: tournament.status,
+    teamPoolId: tournament.teamPoolId,
     matchId: fixture.matchId,
     homePlayerIds: homePlayers.map((player) => player.playerId),
     awayPlayerIds: awayPlayers.map((player) => player.playerId),
     homeName: homePlayers.map((player) => player.name).join(" + "),
     awayName: awayPlayers.map((player) => player.name).join(" + "),
+    homeTeamId: teamIdByCompetitor.get(fixture.homeCompetitorId) ?? null,
+    awayTeamId: teamIdByCompetitor.get(fixture.awayCompetitorId) ?? null,
   };
 }

@@ -1,4 +1,5 @@
 import {
+  boolean,
   foreignKey,
   index,
   integer,
@@ -9,7 +10,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-import { players } from "./core";
+import { players, teamPools, teams } from "./core";
 import { matches } from "./matches";
 import {
   matchModeEnum,
@@ -24,6 +25,10 @@ export const tournaments = pgTable(
     name: varchar("name", { length: 150 }).notNull(),
     type: tournamentTypeEnum("type").default("LEAGUE").notNull(),
     matchMode: matchModeEnum("match_mode").notNull(),
+    teamPoolId: uuid("team_pool_id").references(() => teamPools.id, {
+      onDelete: "set null",
+    }),
+    isHomeAndAway: boolean("is_home_and_away").default(false).notNull(),
     status: tournamentStatusEnum("status").default("DRAFT").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -43,6 +48,7 @@ export const tournamentCompetitors = pgTable(
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
     displayName: varchar("display_name", { length: 200 }).notNull(),
+    teamId: uuid("team_id").references(() => teams.id, { onDelete: "restrict" }),
     seed: integer("seed"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

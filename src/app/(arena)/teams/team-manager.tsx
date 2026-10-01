@@ -88,16 +88,19 @@ function TeamLogo({ team }: { team: TeamDto }) {
 }
 
 function TeamDialog({ team }: { team?: TeamDto }) {
+  const [open, setOpen] = useState(false);
   const [state, action] = useActionState(saveTeamAction, initialActionState);
 
   useEffect(() => {
     if (state.status === "success") {
       toast.success(state.message);
+      const closeTimer = window.setTimeout(() => setOpen(false), 0);
+      return () => window.clearTimeout(closeTimer);
     }
   }, [state]);
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         {team ? (
           <Button variant="ghost" size="icon-sm" aria-label={`Sửa ${team.name}`}>
@@ -175,18 +178,21 @@ function TeamDialog({ team }: { team?: TeamDto }) {
 }
 
 function PoolDialog({ pool, teams }: { pool?: TeamPoolDto; teams: TeamDto[] }) {
+  const [open, setOpen] = useState(false);
   const [state, action] = useActionState(saveTeamPoolAction, initialActionState);
 
   useEffect(() => {
     if (state.status === "success") {
       toast.success(state.message);
+      const closeTimer = window.setTimeout(() => setOpen(false), 0);
+      return () => window.clearTimeout(closeTimer);
     }
   }, [state]);
 
   const selected = new Set(pool?.teamIds ?? []);
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         {pool ? (
           <Button variant="ghost" size="icon-sm" aria-label={`Sửa ${pool.name}`}>

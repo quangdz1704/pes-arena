@@ -112,6 +112,14 @@ export async function startMatch(input: StartMatchInput) {
     ) {
       throw new Error("Tuyển thủ của trận phải đúng theo lịch thi đấu.");
     }
+    if (
+      fixture.teamPoolId &&
+      fixture.homeTeamId &&
+      fixture.awayTeamId &&
+      (input.teamPoolId !== fixture.teamPoolId || input.sideATeamId !== fixture.homeTeamId || input.sideBTeamId !== fixture.awayTeamId)
+    ) {
+      throw new Error("Đội bóng của trận phải đúng với đội đã được gán khi tạo giải.");
+    }
     tournamentId = fixture.tournamentId;
   }
 

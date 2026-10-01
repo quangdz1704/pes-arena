@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateRoundRobin } from "./round-robin";
+import { generateHomeAndAwayRoundRobin, generateRoundRobin } from "./round-robin";
 
 describe("round robin", () => {
   it("creates every pairing once for an even competitor count", () => {
@@ -9,5 +9,12 @@ describe("round robin", () => {
   });
   it("gives one bye per round for an odd competitor count", () => {
     expect(generateRoundRobin(["A", "B", "C"])).toHaveLength(3);
+  });
+  it("creates home and away fixtures in separate legs", () => {
+    const fixtures = generateHomeAndAwayRoundRobin(["A", "B", "C", "D"]);
+    expect(fixtures).toHaveLength(12);
+    expect(fixtures.filter((fixture) => fixture.home === "A" && fixture.away === "B")).toHaveLength(1);
+    expect(fixtures.filter((fixture) => fixture.home === "B" && fixture.away === "A")).toHaveLength(1);
+    expect(Math.min(...fixtures.slice(6).map((fixture) => fixture.round))).toBe(4);
   });
 });

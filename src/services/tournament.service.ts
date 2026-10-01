@@ -1,13 +1,16 @@
 import "server-only";
 import { z } from "zod";
 import { cancelTournamentRecord, createKnockoutRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
-import { listLeaderboardMatchRows } from "@/repositories/match.repository";
+import { getMatchSetupRecords, listLeaderboardMatchRows } from "@/repositories/match.repository";
 import { arenaRating, buildLeaderboard } from "./leaderboard";
 
 export const createLeagueSchema = z.object({
   name: z.string().trim().min(3).max(150),
   matchMode: z.enum(["ONE_V_ONE", "TWO_V_TWO"]),
   competitors: z.array(z.array(z.uuid()).min(1).max(2)).min(2).max(8),
+  teamPoolId: z.uuid(),
+  teamIds: z.array(z.uuid()).min(2).max(8),
+  isHomeAndAway: z.boolean().default(true),
 }).superRefine((value, context) => {
   const playersPerCompetitor = value.matchMode === "ONE_V_ONE" ? 1 : 2;
   if (!value.competitors.every((competitor) => competitor.length === playersPerCompetitor)) {
@@ -17,22 +20,38 @@ export const createLeagueSchema = z.object({
   if (new Set(playerIds).size !== playerIds.length) {
     context.addIssue({ code: "custom", path: ["competitors"], message: "Một người chỉ được thuộc một đối thủ trong giải." });
   }
+  if (value.teamIds.length !== value.competitors.length) {
+    context.addIssue({ code: "custom", path: ["teamIds"], message: "Mỗi đối thủ cần được gán một đội bóng." });
+  }
+  if (new Set(value.teamIds).size !== value.teamIds.length) {
+    context.addIssue({ code: "custom", path: ["teamIds"], message: "Một đội bóng chỉ thuộc về một đối thủ trong giải." });
+  }
 });
 export async function createLeague(input: z.infer<typeof createLeagueSchema>) {
-  return createLeagueRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: input.competitors });
+  await assertTournamentTeams(input.teamPoolId, input.teamIds);
+  return createLeagueRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: input.competitors, teamPoolId: input.teamPoolId, teamIds: input.teamIds, isHomeAndAway: input.isHomeAndAway });
 }
 export const createKnockoutSchema = createLeagueSchema.refine(
   (value) => Number.isInteger(Math.log2(value.competitors.length)),
   { path: ["competitors"], message: "Knockout cần 2, 4 hoặc 8 đối thủ." },
 );
 export async function createKnockout(input: z.infer<typeof createKnockoutSchema>) {
+  await assertTournamentTeams(input.teamPoolId, input.teamIds);
   const rows = await listLeaderboardMatchRows({ matchMode: "ALL", startDate: null });
   const ratings = new Map(buildLeaderboard(rows, "RATING").map((entry) => [entry.playerId, entry.rating]));
   const seededCompetitors = [...input.competitors].sort((left, right) => {
     const averageRating = (competitor: string[]) => competitor.reduce((total, playerId) => total + (ratings.get(playerId) ?? arenaRating.initial), 0) / competitor.length;
     return averageRating(right) - averageRating(left);
   });
-  return createKnockoutRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: seededCompetitors });
+  const teamIdByPlayers = new Map(input.competitors.map((competitor, index) => [competitor.join(","), input.teamIds[index]! ]));
+  return createKnockoutRecord({ name: input.name, matchMode: input.matchMode, competitorPlayerIds: seededCompetitors, teamPoolId: input.teamPoolId, teamIds: seededCompetitors.map((competitor) => teamIdByPlayers.get(competitor.join(","))!), isHomeAndAway: false });
+}
+
+async function assertTournamentTeams(teamPoolId: string, teamIds: string[]) {
+  const pool = (await getMatchSetupRecords()).pools.find((item) => item.id === teamPoolId);
+  if (!pool || !teamIds.every((teamId) => pool.teams.some((team) => team.id === teamId))) {
+    throw new Error("Đội bóng phải thuộc nhóm đội đang hoạt động đã chọn.");
+  }
 }
 export async function listTournaments() { return listTournamentRecords(); }
 export async function getTournament(tournamentId: string) {

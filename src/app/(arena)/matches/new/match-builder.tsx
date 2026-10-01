@@ -139,6 +139,9 @@ type TournamentFixtureStart = {
   homeName: string;
   awayName: string;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO" | undefined;
+  teamPoolId: string | null;
+  homeTeamId: string | null;
+  awayTeamId: string | null;
 };
 
 export function MatchBuilder({
@@ -153,14 +156,14 @@ export function MatchBuilder({
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(() => tournamentFixture ? [...tournamentFixture.homePlayerIds, ...tournamentFixture.awayPlayerIds] : []);
   const [sideAPlayerIds, setSideAPlayerIds] = useState<string[]>(() => tournamentFixture?.homePlayerIds ?? []);
   const [sideBPlayerIds, setSideBPlayerIds] = useState<string[]>(() => tournamentFixture?.awayPlayerIds ?? []);
-  const [poolId, setPoolId] = useState(setup.pools[0]?.id ?? "");
+  const [poolId, setPoolId] = useState(tournamentFixture?.teamPoolId ?? setup.pools[0]?.id ?? "");
   const [matchSetupMode, setMatchSetupMode] = useState<MatchSetupMode>("RANDOM");
   const [randomMode, setRandomMode] = useState<RandomMode>("BALANCED");
   const [randomTierFilter, setRandomTierFilter] = useState<RandomTierFilter>("ALL");
   const [competitionFilter, setCompetitionFilter] = useState("ALL");
   const [teamIds, setTeamIds] = useState<
     [string | undefined, string | undefined] | null
-  >(null);
+  >(() => tournamentFixture?.homeTeamId && tournamentFixture.awayTeamId ? [tournamentFixture.homeTeamId, tournamentFixture.awayTeamId] : null);
   const [rerollCount, setRerollCount] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
   const [isRanked, setIsRanked] = useState(true);
@@ -204,6 +207,7 @@ export function MatchBuilder({
     sideAPlayerIds.length === playersPerSide &&
     sideBPlayerIds.length === playersPerSide &&
     Boolean(selectedPool && selectedTeams?.[0] && selectedTeams[1]);
+  const hasAssignedTournamentTeams = Boolean(tournamentFixture?.teamPoolId && tournamentFixture.homeTeamId && tournamentFixture.awayTeamId);
 
   useEffect(() => {
     if (state.status === "success" && state.matchId) {
@@ -327,7 +331,7 @@ export function MatchBuilder({
   const payload = JSON.stringify({
     composition: { matchMode: mode, sideAPlayerIds, sideBPlayerIds },
     teamPoolId: poolId,
-    randomMode: matchSetupMode === "RANDOM" ? randomMode : null,
+    randomMode: !hasAssignedTournamentTeams && matchSetupMode === "RANDOM" ? randomMode : null,
     sideATeamId: teamIds?.[0],
     sideBTeamId: teamIds?.[1],
     sideARerollCount: rerollCount,
@@ -340,7 +344,7 @@ export function MatchBuilder({
     <form action={action} className="space-y-6">
       <input type="hidden" name="payload" value={payload} />
 
-      {tournamentFixture ? <Card className="border-primary/20 bg-primary/5"><CardContent className="p-5"><p className="text-xs font-black tracking-[0.18em] text-primary">TRẬN THUỘC GIẢI ĐẤU</p><p className="mt-2 font-black">{tournamentFixture.homeName} <span className="text-muted-foreground">vs</span> {tournamentFixture.awayName}</p><p className="mt-1 text-sm text-muted-foreground">Tuyển thủ được khóa theo lịch thi đấu. Chỉ cần chọn đội bóng để bắt đầu.</p></CardContent></Card> : null}
+      {tournamentFixture ? <Card className="border-primary/20 bg-primary/5"><CardContent className="p-5"><p className="text-xs font-black tracking-[0.18em] text-primary">TRẬN THUỘC GIẢI ĐẤU</p><p className="mt-2 font-black">{tournamentFixture.homeName} <span className="text-muted-foreground">vs</span> {tournamentFixture.awayName}</p><p className="mt-1 text-sm text-muted-foreground">{hasAssignedTournamentTeams ? "Tuyển thủ và đội bóng đã được khóa theo danh sách giải." : "Tuyển thủ được khóa theo lịch thi đấu. Chỉ cần chọn đội bóng để bắt đầu."}</p></CardContent></Card> : null}
 
       <Card className="border-primary/20 bg-card/80">
         <CardHeader>
@@ -492,7 +496,7 @@ export function MatchBuilder({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2 sm:grid-cols-2">
+          {!hasAssignedTournamentTeams ? <div className="grid gap-2 sm:grid-cols-2">
             {setup.pools.map((pool) => (
               <button
                 key={pool.id}
@@ -508,13 +512,13 @@ export function MatchBuilder({
                 </span>
               </button>
             ))}
-          </div>
+          </div> : null}
           {!selectedPool ? (
             <p className="rounded-xl bg-amber-400/10 p-4 text-sm text-amber-200">
               Chưa có nhóm đội đang hoạt động.
             </p>
           ) : null}
-          {matchSetupMode === "RANDOM" ? (
+          {!hasAssignedTournamentTeams && matchSetupMode === "RANDOM" ? (
             <>
               <div className="grid grid-cols-2 gap-3">
                 {(
@@ -581,7 +585,7 @@ export function MatchBuilder({
                 {teamIds ? "QUAY LẠI" : "QUAY ĐỘI"}
               </Button>
             </>
-          ) : (
+          ) : !hasAssignedTournamentTeams ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {([0, 1] as const).map((sideIndex) => {
                 const otherTeamId = teamIds?.[sideIndex === 0 ? 1 : 0];
@@ -603,7 +607,7 @@ export function MatchBuilder({
                 );
               })}
             </div>
-          )}
+          ) : null}
           <div
             className={`grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center ${isRolling ? "animate-pulse" : ""}`}
           >

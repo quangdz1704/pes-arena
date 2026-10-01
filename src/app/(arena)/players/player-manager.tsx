@@ -51,16 +51,19 @@ function FieldError({ errors }: { errors?: string[] }) {
 }
 
 function PlayerDialog({ player }: { player?: PlayerDto }) {
+  const [open, setOpen] = useState(false);
   const [state, action] = useActionState(savePlayerAction, initialActionState);
 
   useEffect(() => {
     if (state.status === "success") {
       toast.success(state.message);
+      const closeTimer = window.setTimeout(() => setOpen(false), 0);
+      return () => window.clearTimeout(closeTimer);
     }
   }, [state]);
 
   return (
-    <Dialog>
+    <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         {player ? (
           <Button variant="ghost" size="icon-sm" aria-label={`Sửa ${player.name}`}>

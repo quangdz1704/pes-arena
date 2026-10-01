@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,13 @@ import {
 import { TournamentForm } from "./league-form";
 
 type PlayerOption = { id: string; name: string };
+type TeamOption = { id: string; name: string; shortName: string; tier: "S" | "A" | "B" | "C"; rating: number };
+type PoolOption = { id: string; name: string; emoji: string | null; teams: TeamOption[] };
 
-export function CreateTournamentDialog({ players }: { players: PlayerOption[] }) {
+export function CreateTournamentDialog({ players, pools }: { players: PlayerOption[]; pools: PoolOption[] }) {
+  const [open, setOpen] = useState(false);
   return (
-    <Dialog>
+    <Dialog onOpenChange={setOpen} open={open}>
       <DialogTrigger asChild>
         <Button className="h-10 rounded-xl px-4 font-black" size="lg">
           <Plus />
@@ -32,7 +36,7 @@ export function CreateTournamentDialog({ players }: { players: PlayerOption[] })
             Chọn thể thức, người chơi và PES Arena sẽ tự sinh lịch thi đấu.
           </DialogDescription>
         </DialogHeader>
-        <TournamentForm players={players} />
+        <TournamentForm onSuccess={() => setOpen(false)} players={players} pools={pools} />
       </DialogContent>
     </Dialog>
   );

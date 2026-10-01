@@ -4,6 +4,7 @@ import { PageHeading } from "@/components/shared/page-heading";
 import { Card, CardContent } from "@/components/ui/card";
 import { isDatabaseConfigured } from "@/db";
 import { listPlayers } from "@/services/player.service";
+import { getMatchSetup } from "@/services/match.service";
 import { listTournaments } from "@/services/tournament.service";
 import { CreateTournamentDialog } from "./create-tournament-dialog";
 
@@ -11,9 +12,9 @@ export const dynamic = "force-dynamic";
 
 export default async function TournamentsPage() {
   const ready = isDatabaseConfigured();
-  const [players, tournaments] = ready
-    ? await Promise.all([listPlayers(), listTournaments()])
-    : [[], []];
+  const [players, tournaments, setup] = ready
+    ? await Promise.all([listPlayers(), listTournaments(), getMatchSetup()])
+    : [[], [], null];
   const activeTournaments = tournaments.filter((tournament) => tournament.status === "ACTIVE");
   const tournamentHistory = tournaments.filter((tournament) => tournament.status !== "ACTIVE");
   const activePlayers = players
@@ -46,7 +47,7 @@ export default async function TournamentsPage() {
         eyebrow="Thi đấu"
         title="Giải đấu"
         description="League vòng tròn hoặc knockout: tự sinh lịch và sẵn sàng bước vào cuộc chiến."
-        action={ready ? <CreateTournamentDialog players={activePlayers} /> : undefined}
+        action={ready && setup ? <CreateTournamentDialog players={activePlayers} pools={setup.pools} /> : undefined}
       />
       {ready ? (
         <>
