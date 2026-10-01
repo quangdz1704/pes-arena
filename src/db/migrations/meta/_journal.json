@@ -29,6 +29,13 @@
       "when": 1790848205266,
       "tag": "0003_sloppy_raza",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790849796824,
+      "tag": "0004_hard_moonstone",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,8 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
       competitors,
       teamPoolId: formData.get("teamPoolId") || null,
       teamIds,
+      teamAssignmentScope: formData.get("teamAssignmentScope") || "FIXED",
+      fixtureTeams: JSON.parse(String(formData.get("fixtureTeams") ?? "[]")) as unknown,
       isHomeAndAway: formData.get("isHomeAndAway") === "true",
     };
     const type = z.enum(["LEAGUE", "KNOCKOUT"]).parse(formData.get("type"));

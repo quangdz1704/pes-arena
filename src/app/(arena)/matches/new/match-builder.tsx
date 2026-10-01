@@ -492,7 +492,7 @@ export function MatchBuilder({
       <Card className="relative z-20 overflow-visible border-white/10 bg-card/80">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Dices className="size-5 text-primary" /> 3. {hasAssignedTournamentTeams ? "Đội cố định của giải" : matchSetupMode === "RANDOM" ? "Random đội bóng" : "Chọn đội bóng"}
+            <Dices className="size-5 text-primary" /> 3. {hasAssignedTournamentTeams ? "Đội đã gán cho trận" : matchSetupMode === "RANDOM" ? "Random đội bóng" : "Chọn đội bóng"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -99,6 +99,7 @@ export const tournamentFixtures = pgTable(
       .notNull()
       .references(() => tournaments.id, { onDelete: "cascade" }),
     round: integer("round").notNull(),
+    position: integer("position").default(0).notNull(),
     homeCompetitorId: uuid("home_competitor_id").notNull(),
     awayCompetitorId: uuid("away_competitor_id").notNull(),
     matchId: uuid("match_id").references(() => matches.id, {
@@ -130,4 +131,18 @@ export const tournamentFixtures = pgTable(
       table.round,
     ),
   ],
+);
+
+// Separate from fixtures so teams can be reserved for future knockout rounds.
+export const tournamentFixtureTeams = pgTable(
+  "tournament_fixture_teams",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    tournamentId: uuid("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+    round: integer("round").notNull(),
+    position: integer("position").notNull(),
+    homeTeamId: uuid("home_team_id").notNull().references(() => teams.id, { onDelete: "restrict" }),
+    awayTeamId: uuid("away_team_id").notNull().references(() => teams.id, { onDelete: "restrict" }),
+  },
+  (table) => [unique("tournament_fixture_teams_slot_unique").on(table.tournamentId, table.round, table.position)],
 );

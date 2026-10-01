@@ -12,12 +12,14 @@ import {
   tournamentCompetitorPlayers,
   tournamentCompetitors,
   tournamentFixtures,
+  tournamentFixtureTeams,
   tournaments,
 } from "@/db/schema";
 
 import { generateHomeAndAwayRoundRobin, generateRoundRobin } from "@/services/round-robin";
 import { generateKnockoutRound, getKnockoutBracketSeedOrder } from "@/services/knockout";
 import { getTournamentPlacements } from "@/services/tournament-results";
+import { numberFixtures, type FixtureTeamAssignment } from "@/services/tournament-team-plan";
 
 export type PlayerTournamentHonor = {
   tournamentId: string;
@@ -32,16 +34,18 @@ export async function createLeagueRecord(input: {
   competitorPlayerIds: string[][];
   teamPoolId: string | null;
   teamIds: string[];
+  fixtureTeams: FixtureTeamAssignment[];
   isHomeAndAway: boolean;
 }) {
   const tournamentId = randomUUID();
   const competitors = input.competitorPlayerIds.map((playerIds, index) => ({ id: randomUUID(), playerIds, teamId: input.teamIds[index] ?? null }));
-  const fixtures = input.isHomeAndAway ? generateHomeAndAwayRoundRobin(competitors) : generateRoundRobin(competitors);
+  const fixtures = numberFixtures(input.isHomeAndAway ? generateHomeAndAwayRoundRobin(competitors) : generateRoundRobin(competitors));
   await getDb().batch([
     getDb().insert(tournaments).values({ id: tournamentId, name: input.name, type: "LEAGUE", matchMode: input.matchMode, teamPoolId: input.teamPoolId, isHomeAndAway: input.isHomeAndAway, status: "ACTIVE" }),
     getDb().insert(tournamentCompetitors).values(competitors.map((competitor, index) => ({ id: competitor.id, tournamentId, displayName: `Competitor ${index + 1}`, teamId: competitor.teamId, seed: index + 1 }))),
     getDb().insert(tournamentCompetitorPlayers).values(competitors.flatMap((competitor) => competitor.playerIds.map((playerId, index) => ({ competitorId: competitor.id, playerId, position: index + 1 })))),
-    getDb().insert(tournamentFixtures).values(fixtures.map((fixture) => ({ tournamentId, round: fixture.round, homeCompetitorId: fixture.home.id, awayCompetitorId: fixture.away.id }))),
+    getDb().insert(tournamentFixtures).values(fixtures.map((fixture) => ({ tournamentId, round: fixture.round, position: fixture.position, homeCompetitorId: fixture.home.id, awayCompetitorId: fixture.away.id }))),
+    ...(input.fixtureTeams.length ? [getDb().insert(tournamentFixtureTeams).values(input.fixtureTeams.map((fixture) => ({ ...fixture, tournamentId })))] : []),
   ]);
   return tournamentId;
 }
@@ -52,6 +56,7 @@ export async function createKnockoutRecord(input: {
   competitorPlayerIds: string[][];
   teamPoolId: string | null;
   teamIds: string[];
+  fixtureTeams: FixtureTeamAssignment[];
   isHomeAndAway: boolean;
 }) {
   const tournamentId = randomUUID();
@@ -63,7 +68,7 @@ export async function createKnockoutRecord(input: {
   const bracketCompetitors = getKnockoutBracketSeedOrder(competitors.length).map(
     (seed) => competitors[seed - 1]!,
   );
-  const fixtures = generateKnockoutRound(bracketCompetitors);
+  const fixtures = numberFixtures(generateKnockoutRound(bracketCompetitors));
   const db = getDb();
 
   await db.batch([
@@ -98,10 +103,12 @@ export async function createKnockoutRecord(input: {
       fixtures.map((fixture) => ({
         tournamentId,
         round: fixture.round,
+        position: fixture.position,
         homeCompetitorId: fixture.home.id,
         awayCompetitorId: fixture.away.id,
       })),
     ),
+    ...(input.fixtureTeams.length ? [db.insert(tournamentFixtureTeams).values(input.fixtureTeams.map((fixture) => ({ ...fixture, tournamentId })))] : []),
   ]);
 
   return tournamentId;
@@ -144,7 +151,7 @@ export async function advanceKnockoutTournament(tournamentId: string) {
     .select()
     .from(tournamentFixtures)
     .where(eq(tournamentFixtures.tournamentId, tournamentId))
-    .orderBy(asc(tournamentFixtures.round), asc(tournamentFixtures.createdAt));
+    .orderBy(asc(tournamentFixtures.round), asc(tournamentFixtures.position), asc(tournamentFixtures.createdAt));
   const currentRound = fixtures.at(-1)?.round;
   if (!currentRound) return;
 
@@ -184,13 +191,14 @@ export async function advanceKnockoutTournament(tournamentId: string) {
     return;
   }
 
-  const nextFixtures = generateKnockoutRound(winners, currentRound + 1);
+  const nextFixtures = numberFixtures(generateKnockoutRound(winners, currentRound + 1));
   await db
     .insert(tournamentFixtures)
     .values(
       nextFixtures.map((fixture) => ({
         tournamentId,
         round: fixture.round,
+        position: fixture.position,
         homeCompetitorId: fixture.home,
         awayCompetitorId: fixture.away,
       })),
@@ -241,6 +249,11 @@ export async function getTournamentRecord(tournamentId: string) {
     .where(eq(tournamentCompetitors.tournamentId, tournamentId))
     .orderBy(asc(tournamentCompetitors.seed));
   const competitorIds = competitors.map((competitor) => competitor.id);
+  const fixtureTeams = await db.select().from(tournamentFixtureTeams).where(eq(tournamentFixtureTeams.tournamentId, tournamentId));
+  const assignedTeamIds = [...new Set([
+    ...competitors.flatMap((competitor) => competitor.teamId ? [competitor.teamId] : []),
+    ...fixtureTeams.flatMap((fixture) => [fixture.homeTeamId, fixture.awayTeamId]),
+  ])];
 
   const [competitorPlayers, fixtures, competitorTeams] = await Promise.all([
     competitorIds.length
@@ -260,9 +273,9 @@ export async function getTournamentRecord(tournamentId: string) {
       .select()
       .from(tournamentFixtures)
       .where(eq(tournamentFixtures.tournamentId, tournamentId))
-      .orderBy(asc(tournamentFixtures.round)),
-    competitors.some((competitor) => competitor.teamId)
-      ? db.select({ id: teams.id, name: teams.name, shortName: teams.shortName }).from(teams).where(inArray(teams.id, competitors.flatMap((competitor) => competitor.teamId ? [competitor.teamId] : [])))
+      .orderBy(asc(tournamentFixtures.round), asc(tournamentFixtures.position), asc(tournamentFixtures.createdAt), asc(tournamentFixtures.id)),
+    assignedTeamIds.length
+      ? db.select({ id: teams.id, name: teams.name, shortName: teams.shortName }).from(teams).where(inArray(teams.id, assignedTeamIds))
       : Promise.resolve([]),
   ]);
 
@@ -277,6 +290,7 @@ export async function getTournamentRecord(tournamentId: string) {
   }
   const teamById = new Map(competitorTeams.map((team) => [team.id, team]));
   const teamByCompetitorId = new Map(competitors.flatMap((competitor) => competitor.teamId ? [[competitor.id, teamById.get(competitor.teamId)]] as const : []));
+  const teamsBySlot = new Map(fixtureTeams.map((fixture) => [`${fixture.round}:${fixture.position}`, fixture]));
 
   const matchIds = fixtures.flatMap((fixture) => fixture.matchId ? [fixture.matchId] : []);
   const [fixtureMatches, fixtureScores] = await Promise.all([
@@ -297,6 +311,13 @@ export async function getTournamentRecord(tournamentId: string) {
 
   return {
     ...tournament,
+    teamAssignmentScope: fixtureTeams.length ? "PER_MATCH" : competitors.some((competitor) => competitor.teamId) ? "FIXED" : "NONE",
+    plannedFixtureTeams: fixtureTeams.map((fixture) => ({
+      round: fixture.round,
+      position: fixture.position,
+      homeTeamName: teamById.get(fixture.homeTeamId)?.name ?? "Chưa rõ",
+      awayTeamName: teamById.get(fixture.awayTeamId)?.name ?? "Chưa rõ",
+    })).sort((a, b) => a.round - b.round || a.position - b.position),
     competitors: competitors.map((competitor) => ({
       id: competitor.id,
       name: nameByCompetitorId.get(competitor.id) ?? competitor.displayName,
@@ -318,8 +339,8 @@ export async function getTournamentRecord(tournamentId: string) {
       awayScore: fixture.matchId ? scoresByMatchId.get(fixture.matchId)?.B ?? null : null,
       homeName: nameByCompetitorId.get(fixture.homeCompetitorId) ?? "Chưa rõ",
       awayName: nameByCompetitorId.get(fixture.awayCompetitorId) ?? "Chưa rõ",
-      homeTeamName: teamByCompetitorId.get(fixture.homeCompetitorId)?.name ?? null,
-      awayTeamName: teamByCompetitorId.get(fixture.awayCompetitorId)?.name ?? null,
+      homeTeamName: teamById.get(teamsBySlot.get(`${fixture.round}:${fixture.position}`)?.homeTeamId ?? "")?.name ?? teamByCompetitorId.get(fixture.homeCompetitorId)?.name ?? null,
+      awayTeamName: teamById.get(teamsBySlot.get(`${fixture.round}:${fixture.position}`)?.awayTeamId ?? "")?.name ?? teamByCompetitorId.get(fixture.awayCompetitorId)?.name ?? null,
     })),
   };
 }
@@ -464,6 +485,11 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
     .from(tournamentCompetitors)
     .where(inArray(tournamentCompetitors.id, [fixture.homeCompetitorId, fixture.awayCompetitorId]));
   const teamIdByCompetitor = new Map(assignedCompetitors.map((competitor) => [competitor.id, competitor.teamId]));
+  const [fixtureTeams] = await db.select().from(tournamentFixtureTeams).where(and(
+    eq(tournamentFixtureTeams.tournamentId, fixture.tournamentId),
+    eq(tournamentFixtureTeams.round, fixture.round),
+    eq(tournamentFixtureTeams.position, fixture.position),
+  ));
 
   return {
     id: fixture.id,
@@ -476,7 +502,7 @@ export async function getTournamentFixtureForMatchStart(fixtureId: string) {
     awayPlayerIds: awayPlayers.map((player) => player.playerId),
     homeName: homePlayers.map((player) => player.name).join(" + "),
     awayName: awayPlayers.map((player) => player.name).join(" + "),
-    homeTeamId: teamIdByCompetitor.get(fixture.homeCompetitorId) ?? null,
-    awayTeamId: teamIdByCompetitor.get(fixture.awayCompetitorId) ?? null,
+    homeTeamId: fixtureTeams?.homeTeamId ?? teamIdByCompetitor.get(fixture.homeCompetitorId) ?? null,
+    awayTeamId: fixtureTeams?.awayTeamId ?? teamIdByCompetitor.get(fixture.awayCompetitorId) ?? null,
   };
 }

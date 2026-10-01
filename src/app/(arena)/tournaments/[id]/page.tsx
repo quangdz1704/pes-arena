@@ -57,6 +57,7 @@ export default async function TournamentDetailPage({
           description={`${tournament.competitors.length} đối thủ · ${tournament.fixtures.length} trận${tournament.type === "LEAGUE" && tournament.isHomeAndAway ? " · lượt đi–về" : ""} · ${tournament.status}`}
           action={tournament.status === "ACTIVE" ? <CancelTournamentButton tournamentId={tournament.id} /> : undefined}
         />
+        <p className="text-sm text-muted-foreground">{tournament.teamAssignmentScope === "PER_MATCH" ? "Đội bóng được gán riêng cho từng trận theo lịch." : tournament.teamAssignmentScope === "FIXED" ? "Mỗi người/cặp dùng đội cố định xuyên suốt giải." : "Chọn hoặc random đội khi bắt đầu từng trận."}</p>
       </div>
 
       {podium.length > 0 ? (
@@ -131,7 +132,15 @@ export default async function TournamentDetailPage({
           </Card>
         ))}
         {tournament.type === "KNOCKOUT" && tournament.status === "ACTIVE" && rounds.size < knockoutTotalRounds ? (
-          <p className="text-sm text-muted-foreground">Vòng kế tiếp sẽ xuất hiện ngay khi tất cả trận của vòng hiện tại đã có kết quả.</p>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Vòng kế tiếp sẽ xuất hiện ngay khi tất cả trận của vòng hiện tại đã có kết quả.</p>
+            {tournament.plannedFixtureTeams.filter((fixture) => !rounds.has(fixture.round)).map((fixture) => (
+              <div className="rounded-xl border border-white/10 px-4 py-3 text-sm" key={`${fixture.round}:${fixture.position}`}>
+                <p className="font-bold">{getKnockoutRoundLabel(fixture.round, knockoutTotalRounds)} · Trận {fixture.position}</p>
+                <p className="mt-1 text-muted-foreground">Chờ người đi tiếp · <span className="text-primary">{fixture.homeTeamName} vs {fixture.awayTeamName}</span></p>
+              </div>
+            ))}
+          </div>
         ) : null}
       </section>
     </div>
