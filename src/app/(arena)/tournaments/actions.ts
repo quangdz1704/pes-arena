@@ -13,7 +13,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
       name: formData.get("name"),
       matchMode: formData.get("matchMode"),
       competitors,
-      teamPoolId: formData.get("teamPoolId"),
+      teamPoolId: formData.get("teamPoolId") || null,
       teamIds,
       isHomeAndAway: formData.get("isHomeAndAway") === "true",
     };
@@ -21,7 +21,7 @@ export async function createTournamentAction(_: ActionState, formData: FormData)
     if (type === "KNOCKOUT") await createKnockout(createKnockoutSchema.parse(input));
     else await createLeague(createLeagueSchema.parse(input));
     revalidatePath("/tournaments");
-    return { status: "success", message: type === "KNOCKOUT" ? "Đã tạo bracket knockout và gán đội thi đấu." : "Đã tạo giải, gán đội và sinh lịch thi đấu." };
+    return { status: "success", message: type === "KNOCKOUT" ? "Đã tạo bracket knockout." : "Đã tạo giải và sinh lịch thi đấu." };
   } catch (error) {
     return toActionError(error);
   }

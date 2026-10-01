@@ -30,12 +30,12 @@ export async function createLeagueRecord(input: {
   name: string;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
   competitorPlayerIds: string[][];
-  teamPoolId: string;
+  teamPoolId: string | null;
   teamIds: string[];
   isHomeAndAway: boolean;
 }) {
   const tournamentId = randomUUID();
-  const competitors = input.competitorPlayerIds.map((playerIds, index) => ({ id: randomUUID(), playerIds, teamId: input.teamIds[index]! }));
+  const competitors = input.competitorPlayerIds.map((playerIds, index) => ({ id: randomUUID(), playerIds, teamId: input.teamIds[index] ?? null }));
   const fixtures = input.isHomeAndAway ? generateHomeAndAwayRoundRobin(competitors) : generateRoundRobin(competitors);
   await getDb().batch([
     getDb().insert(tournaments).values({ id: tournamentId, name: input.name, type: "LEAGUE", matchMode: input.matchMode, teamPoolId: input.teamPoolId, isHomeAndAway: input.isHomeAndAway, status: "ACTIVE" }),
@@ -50,7 +50,7 @@ export async function createKnockoutRecord(input: {
   name: string;
   matchMode: "ONE_V_ONE" | "TWO_V_TWO";
   competitorPlayerIds: string[][];
-  teamPoolId: string;
+  teamPoolId: string | null;
   teamIds: string[];
   isHomeAndAway: boolean;
 }) {
@@ -58,7 +58,7 @@ export async function createKnockoutRecord(input: {
   const competitors = input.competitorPlayerIds.map((playerIds, index) => ({
     id: randomUUID(),
     playerIds,
-    teamId: input.teamIds[index]!,
+    teamId: input.teamIds[index] ?? null,
   }));
   const bracketCompetitors = getKnockoutBracketSeedOrder(competitors.length).map(
     (seed) => competitors[seed - 1]!,
