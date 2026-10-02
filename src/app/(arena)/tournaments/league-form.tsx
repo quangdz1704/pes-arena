@@ -7,8 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { initialActionState } from "@/lib/action-state";
-import { pickUnique } from "@/services/match-randomization";
-import { buildTournamentTeamPlan, randomizeFixtureTeams, type FixtureTeamAssignment } from "@/services/tournament-team-plan";
+import { buildTournamentTeamPlan, getSameTierTeamGroups, pickSameTierTeams, randomizeFixtureTeams, type FixtureTeamAssignment } from "@/services/tournament-team-plan";
 
 import { createTournamentAction } from "./actions";
 
@@ -51,6 +50,8 @@ export function TournamentForm({ onSuccess, players, pools }: { onSuccess: () =>
     ? assignedTeamIds.length === competitors.length && Array.from(assignedTeamIds).every(Boolean) && new Set(assignedTeamIds).size === competitors.length
     : fixturePlan.length > 0 && fixturePlan.every((fixture) => fixtureTeams.some((assignment) => assignment.round === fixture.round && assignment.position === fixture.position && assignment.homeTeamId && assignment.awayTeamId && assignment.homeTeamId !== assignment.awayTeamId)));
   const fixtureCount = fixturePlan.length;
+  const randomTeamCount = teamAssignmentScope === "FIXED" ? competitors.length : 2;
+  const canRandomizeTeams = fixtureCount > 0 && getSameTierTeamGroups(selectedPool?.teams ?? [], randomTeamCount).length > 0;
 
   const resetAssignments = () => { setTeamIds([]); setFixtureTeams([]); };
   const resetMode = (nextMode: MatchMode) => { setMode(nextMode); setSelectedPlayerIds([]); setPairs([]); resetAssignments(); };
@@ -59,9 +60,9 @@ export function TournamentForm({ onSuccess, players, pools }: { onSuccess: () =>
     setPairs((current) => [...current, [firstPlayerId, secondPlayerId]]); setFirstPlayerId(""); setSecondPlayerId(""); resetAssignments();
   };
   const randomizeTeams = () => {
-    if (!selectedPool) return;
-    if (teamAssignmentScope === "PER_MATCH" && selectedPool.teams.length >= 2) setFixtureTeams(randomizeFixtureTeams(fixturePlan, selectedPool.teams));
-    else if (selectedPool.teams.length >= competitors.length) setTeamIds(pickUnique(selectedPool.teams, competitors.length).map((team) => team.id));
+    if (!selectedPool || !canRandomizeTeams) return;
+    if (teamAssignmentScope === "PER_MATCH") setFixtureTeams(randomizeFixtureTeams(fixturePlan, selectedPool.teams));
+    else setTeamIds(pickSameTierTeams(selectedPool.teams, competitors.length).map((team) => team.id));
   };
   const setManualTeam = (index: number, teamId: string) => setTeamIds((current) => { const next = [...current]; next[index] = teamId; return next; });
   const setFixtureTeam = (round: number, position: number, side: "homeTeamId" | "awayTeamId", teamId: string) => setFixtureTeams((current) => {
@@ -106,9 +107,12 @@ export function TournamentForm({ onSuccess, players, pools }: { onSuccess: () =>
           {(["RANDOM", "MANUAL"] as const).map((value) => <button className={`rounded-full border px-3 py-1.5 text-xs font-bold ${teamSelectionMode === value ? "border-primary bg-primary/10 text-primary" : "border-border"}`} key={value} onClick={() => { setTeamSelectionMode(value); resetAssignments(); }} type="button">{value === "RANDOM" ? "🎲 Random đội" : "✍️ Thủ công"}</button>)}
         </div>
         {teamSelectionMode === "RANDOM" ? (
-          <Button className="w-full" disabled={!selectedPool || selectedPool.teams.length < (teamAssignmentScope === "FIXED" ? competitors.length : 2) || fixtureCount === 0} onClick={randomizeTeams} type="button">
-            <Dices /> {teamAssignmentScope === "FIXED" ? `Random ${competitors.length} đội không trùng` : `Random đội cho ${fixtureCount} trận`}
-          </Button>
+          <div className="space-y-2">
+            <Button className="w-full" disabled={!canRandomizeTeams} onClick={randomizeTeams} type="button">
+              <Dices /> {fixtureCount === 0 ? "Chọn đủ người chơi trước" : teamAssignmentScope === "FIXED" ? `Random ${competitors.length} đội cùng tier` : `Random cùng tier cho ${fixtureCount} trận`}
+            </Button>
+            <p className="text-xs text-muted-foreground">{fixtureCount > 0 && !canRandomizeTeams ? `Nhóm đội không có tier nào đủ ${randomTeamCount} đội khác nhau. Chọn nhóm khác hoặc gán thủ công.` : teamAssignmentScope === "FIXED" ? "Tất cả đội được random cùng tier và không trùng nhau." : "Hai đội trong mỗi trận luôn cùng tier, không trùng nhau."}</p>
+          </div>
         ) : null}
         {teamAssignmentScope === "FIXED" ? (
           <div className="grid gap-3 sm:grid-cols-2">

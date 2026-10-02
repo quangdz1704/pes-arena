@@ -1,5 +1,5 @@
 import { getKnockoutBracketSeedOrder } from "./knockout";
-import { pickFreshPureTeams, type RandomSource } from "./match-randomization";
+import { pickUnique, type RandomSource } from "./match-randomization";
 import { generateHomeAndAwayRoundRobin, generateRoundRobin } from "./round-robin";
 
 export type FixtureTeamAssignment = {
@@ -8,6 +8,25 @@ export type FixtureTeamAssignment = {
   homeTeamId: string;
   awayTeamId: string;
 };
+
+type TieredTeam = { id: string; tier: "S" | "A" | "B" | "C" };
+
+export function getSameTierTeamGroups<T extends TieredTeam>(teams: readonly T[], count: number): T[][] {
+  if (!Number.isInteger(count) || count < 2) return [];
+  const groups = new Map<T["tier"], T[]>();
+  for (const team of teams) {
+    const group = groups.get(team.tier) ?? [];
+    group.push(team);
+    groups.set(team.tier, group);
+  }
+  return [...groups.values()].filter((group) => group.length >= count);
+}
+
+export function pickSameTierTeams<T extends TieredTeam>(teams: readonly T[], count: number, random: RandomSource = Math.random): T[] {
+  const groups = getSameTierTeamGroups(teams, count);
+  if (!groups.length) throw new Error(`Nhóm đội không có tier nào đủ ${count} đội khác nhau để random.`);
+  return pickUnique(pickUnique(groups, 1, random)[0]!, count, random);
+}
 
 export function numberFixtures<T extends { round: number }>(fixtures: T[]) {
   const positions = new Map<number, number>();
@@ -38,13 +57,21 @@ export function buildTournamentTeamPlan(type: "LEAGUE" | "KNOCKOUT", count: numb
 
 export function randomizeFixtureTeams(
   plan: { round: number; position: number }[],
-  teams: { id: string }[],
+  teams: readonly TieredTeam[],
   random: RandomSource = Math.random,
 ): FixtureTeamAssignment[] {
   let recentTeamIds: string[] = [];
   return plan.map(({ round, position }) => {
-    const [home, away] = pickFreshPureTeams(teams, recentTeamIds, random);
-    recentTeamIds = [home.id, away.id, ...recentTeamIds].slice(0, 8);
-    return { round, position, homeTeamId: home.id, awayTeamId: away.id };
+    // Cooldown must not leave singleton tiers that force a mismatched pair.
+    const recent = new Set(recentTeamIds);
+    const lastMatch = new Set(recentTeamIds.slice(0, 2));
+    const candidates = [
+      teams.filter((team) => !recent.has(team.id)),
+      teams.filter((team) => !lastMatch.has(team.id)),
+      teams,
+    ].find((pool) => getSameTierTeamGroups(pool, 2).length > 0) ?? teams;
+    const [home, away] = pickSameTierTeams(candidates, 2, random);
+    recentTeamIds = [home!.id, away!.id, ...recentTeamIds].slice(0, 8);
+    return { round, position, homeTeamId: home!.id, awayTeamId: away!.id };
   });
 }
