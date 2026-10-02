@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { Fragment, useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Dices, X } from "lucide-react";
 import { toast } from "sonner";
@@ -708,70 +708,92 @@ export function TournamentForm({
                               "away",
                             );
                             return (
-                              <div
-                                className="grid grid-cols-2 gap-3 py-2"
+                              <article
+                                aria-label={
+                                  "Vòng " + round + ", trận " + fixture.position +
+                                  ": " + homeLabel + " gặp " + awayLabel
+                                }
+                                className="space-y-2 py-3"
                                 key={fixture.position}
                               >
-                                {(
-                                  [
-                                    ["homeTeamId", homeLabel, "awayTeamId"],
-                                    ["awayTeamId", awayLabel, "homeTeamId"],
-                                  ] as const
-                                ).map(([side, label, opposite]) => (
-                                  <div className="min-w-0 space-y-1" key={side}>
-                                    <p
-                                      className="truncate text-xs font-semibold"
-                                      title={label}
-                                    >
-                                      {label}
-                                    </p>
-                                    {teamSelectionMode === "MANUAL" ? (
-                                      <select
-                                        aria-label={
-                                          "Đội của " +
-                                          label +
-                                          ", vòng " +
-                                          round +
-                                          ", trận " +
-                                          fixture.position
-                                        }
-                                        className={fieldClass + " px-2"}
-                                        onChange={(event) =>
-                                          setFixtureTeam(
-                                            round,
-                                            fixture.position,
-                                            side,
-                                            event.target.value,
-                                          )
-                                        }
-                                        value={assignment?.[side] ?? ""}
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                  Trận {fixture.position}
+                                </p>
+                                <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
+                                  {(
+                                    [
+                                      ["homeTeamId", homeLabel, "awayTeamId"],
+                                      ["awayTeamId", awayLabel, "homeTeamId"],
+                                    ] as const
+                                  ).map(([side, label, opposite], sideIndex) => (
+                                    <Fragment key={side}>
+                                      {sideIndex === 1 ? (
+                                        <span
+                                          aria-hidden="true"
+                                          className="flex size-7 items-center justify-center rounded-full bg-white/5 text-[10px] font-black text-muted-foreground"
+                                        >
+                                          VS
+                                        </span>
+                                      ) : null}
+                                      <div
+                                        className={"min-w-0 space-y-1 " +
+                                          (side === "awayTeamId" ? "text-right" : "text-left")}
                                       >
-                                        <option value="">Chọn đội</option>
-                                        {selectedPool?.teams.map((team) => (
-                                          <option
-                                            disabled={
-                                              assignment?.[opposite] === team.id
+                                        <p
+                                          className="break-words text-sm font-semibold"
+                                          title={label}
+                                        >
+                                          {label}
+                                        </p>
+                                        {teamSelectionMode === "MANUAL" ? (
+                                          <select
+                                            aria-label={
+                                              "Đội của " +
+                                              label +
+                                              ", vòng " +
+                                              round +
+                                              ", trận " +
+                                              fixture.position
                                             }
-                                            key={team.id}
-                                            value={team.id}
+                                            className={fieldClass + " px-2"}
+                                            onChange={(event) =>
+                                              setFixtureTeam(
+                                                round,
+                                                fixture.position,
+                                                side,
+                                                event.target.value,
+                                              )
+                                            }
+                                            value={assignment?.[side] ?? ""}
                                           >
-                                            {team.name} · {team.tier}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    ) : (
-                                      <p
-                                        className="truncate text-xs text-primary"
-                                        title={getTeamName(assignment?.[side])}
-                                      >
-                                        {getTeamName(assignment?.[side])}
-                                        {" · "}
-                                        {getTeam(assignment?.[side])?.tier}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
+                                            <option value="">Chọn đội</option>
+                                            {selectedPool?.teams.map((team) => (
+                                              <option
+                                                disabled={
+                                                  assignment?.[opposite] === team.id
+                                                }
+                                                key={team.id}
+                                                value={team.id}
+                                              >
+                                                {team.name} · {team.tier}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        ) : (
+                                          <p
+                                            className="truncate text-xs text-primary"
+                                            title={getTeamName(assignment?.[side])}
+                                          >
+                                            {getTeamName(assignment?.[side])}
+                                            {" · "}
+                                            {getTeam(assignment?.[side])?.tier}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </Fragment>
+                                  ))}
+                                </div>
+                              </article>
                             );
                           })}
                         </div>
