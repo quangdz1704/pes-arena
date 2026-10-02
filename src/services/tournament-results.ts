@@ -29,6 +29,57 @@ export type TournamentPlacement = {
   place: 1 | 2 | 3;
 };
 
+export type TournamentLeaderCompetitor = TournamentResultCompetitor & {
+  players: { id: string; name: string; avatarUrl: string | null }[];
+};
+
+export type TournamentLeaders = {
+  label: string;
+  entries: (TournamentLeaderCompetitor & { rank: number | null; points: number | null })[];
+};
+
+export function buildTournamentLeaders({ type, status, competitors, fixtures }: {
+  type: "LEAGUE" | "KNOCKOUT";
+  status: "DRAFT" | "ACTIVE" | "FINISHED" | "CANCELLED";
+  competitors: TournamentLeaderCompetitor[];
+  fixtures: TournamentResultFixture[];
+}): TournamentLeaders {
+  if (status === "CANCELLED") return { label: "Giải đã hủy", entries: [] };
+  const byId = new Map(competitors.map((competitor) => [competitor.id, competitor]));
+  const ordered = [...competitors].sort((left, right) =>
+    (left.seed ?? Number.MAX_SAFE_INTEGER) - (right.seed ?? Number.MAX_SAFE_INTEGER) || left.name.localeCompare(right.name, "vi"),
+  );
+
+  if (type === "LEAGUE" && fixtures.some(isFinishedScore)) {
+    return {
+      label: status === "FINISHED" ? "Top giải · Chung cuộc" : "Top giải · Tạm thời",
+      entries: buildTournamentStandings(competitors, fixtures).slice(0, 4).map((standing) => ({
+        ...byId.get(standing.id)!, rank: standing.rank, points: standing.points,
+      })),
+    };
+  }
+  if (type === "KNOCKOUT" && status === "FINISHED") {
+    return {
+      label: "Top giải · Chung cuộc",
+      entries: getTournamentPlacements({ type, status, competitors, fixtures }).slice(0, 4).flatMap((placement) => {
+        const competitor = byId.get(placement.competitorId);
+        return competitor ? [{ ...competitor, rank: placement.place, points: null }] : [];
+      }),
+    };
+  }
+
+  // Knockout contenders have no standings until the final; never invent ranks.
+  const eliminated = new Set(fixtures.filter(isFinishedScore).flatMap((fixture) =>
+    fixture.homeScore === fixture.awayScore ? [] : [fixture.homeScore > fixture.awayScore ? fixture.awayCompetitorId : fixture.homeCompetitorId],
+  ));
+  return {
+    label: type === "KNOCKOUT" && fixtures.some(isFinishedScore) ? "Đang tranh cúp" : status === "DRAFT" ? "Chờ khai cuộc" : "Chưa có thứ hạng",
+    entries: ordered.filter((competitor) => type !== "KNOCKOUT" || !eliminated.has(competitor.id)).slice(0, 4).map((competitor) => ({
+      ...competitor, rank: null, points: null,
+    })),
+  };
+}
+
 function isFinishedScore(
   fixture: TournamentResultFixture,
 ): fixture is TournamentResultFixture & { homeScore: number; awayScore: number } {

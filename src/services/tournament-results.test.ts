@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildTournamentStandings, getTournamentPlacements } from "./tournament-results";
+import { buildTournamentLeaders, buildTournamentStandings, getTournamentPlacements } from "./tournament-results";
 
 const competitors = [
   { id: "a", name: "An", seed: 1 },
@@ -38,5 +38,55 @@ describe("tournament results", () => {
       { competitorId: "b", place: 3 },
       { competitorId: "c", place: 3 },
     ]);
+  });
+});
+
+describe("tournament carousel leaders", () => {
+  const entrants = [...competitors, { id: "e", name: "Em", seed: 5 }].map((competitor) => ({
+    ...competitor, players: [{ id: `player-${competitor.id}`, name: competitor.name, avatarUrl: `/${competitor.id}.jpg` }],
+  }));
+  const semiFinals = [
+    { round: 1, homeCompetitorId: "a", awayCompetitorId: "b", matchStatus: "FINISHED" as const, homeScore: 2, awayScore: 0 },
+    { round: 1, homeCompetitorId: "c", awayCompetitorId: "d", matchStatus: "FINISHED" as const, homeScore: 1, awayScore: 3 },
+  ];
+
+  it("limits league highlights to four ranked entrants and includes their points and avatars", () => {
+    const result = buildTournamentLeaders({ type: "LEAGUE", status: "ACTIVE", competitors: entrants, fixtures: [semiFinals[0]] });
+    expect(result.label).toBe("Top giải · Tạm thời");
+    expect(result.entries).toHaveLength(4);
+    expect(result.entries[0]).toMatchObject({ id: "a", rank: 1, points: 3, players: entrants[0].players });
+    expect(result.entries.map((entry) => entry.rank)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("retains both members of a ranked doubles competitor", () => {
+    const doubles = entrants.map((entrant) => ({ ...entrant, players: [...entrant.players, { id: `mate-${entrant.id}`, name: "Đồng đội", avatarUrl: null }] }));
+    const result = buildTournamentLeaders({ type: "LEAGUE", status: "FINISHED", competitors: doubles, fixtures: [semiFinals[0]] });
+    expect(result.label).toBe("Top giải · Chung cuộc");
+    expect(result.entries[0].players).toEqual(doubles[0].players);
+  });
+
+  it("does not fabricate standings before results exist, including a playing match", () => {
+    const result = buildTournamentLeaders({ type: "LEAGUE", status: "ACTIVE", competitors: [...entrants].reverse(), fixtures: [{ ...semiFinals[0], matchStatus: "PLAYING" }] });
+    expect(result.entries.map((entry) => entry.id)).toEqual(["a", "b", "c", "d"]);
+    expect(result.entries.every((entry) => entry.rank === null && entry.points === null)).toBe(true);
+  });
+
+  it("shows only surviving knockout contenders without assigning final ranks", () => {
+    const result = buildTournamentLeaders({ type: "KNOCKOUT", status: "ACTIVE", competitors: entrants.slice(0, 4), fixtures: semiFinals });
+    expect(result.label).toBe("Đang tranh cúp");
+    expect(result.entries.map((entry) => entry.id)).toEqual(["a", "d"]);
+    expect(result.entries.every((entry) => entry.rank === null)).toBe(true);
+  });
+
+  it("shows champion, runner-up and both joint third-place entrants for a finished knockout", () => {
+    const result = buildTournamentLeaders({ type: "KNOCKOUT", status: "FINISHED", competitors: entrants.slice(0, 4), fixtures: [
+      ...semiFinals, { round: 2, homeCompetitorId: "a", awayCompetitorId: "d", matchStatus: "FINISHED", homeScore: 2, awayScore: 4 },
+    ] });
+    expect(result.entries.map((entry) => [entry.id, entry.rank])).toEqual([["d", 1], ["a", 2], ["b", 3], ["c", 3]]);
+  });
+
+  it("does not show an invalid or cancelled tournament as having a champion", () => {
+    expect(buildTournamentLeaders({ type: "KNOCKOUT", status: "FINISHED", competitors: entrants.slice(0, 4), fixtures: semiFinals }).entries).toEqual([]);
+    expect(buildTournamentLeaders({ type: "LEAGUE", status: "CANCELLED", competitors: entrants, fixtures: [] }).entries).toEqual([]);
   });
 });

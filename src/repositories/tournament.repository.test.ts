@@ -5,7 +5,7 @@ vi.mock("@/db", () => ({ getDb: vi.fn() }));
 
 import { getDb } from "@/db";
 import { tournamentCompetitors, tournamentFixtureTeams, tournamentFixtures } from "@/db/schema";
-import { advanceKnockoutTournament, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord } from "./tournament.repository";
+import { advanceKnockoutTournament, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentHighlightRecords } from "./tournament.repository";
 
 // Exercise repository query mapping without connecting to the user's database.
 function query(rows: unknown[]) {
@@ -88,5 +88,26 @@ describe("tournament team persistence", () => {
     expect(tournament?.teamAssignmentScope).toBe("PER_MATCH");
     expect(tournament?.fixtures[0]).toEqual(expect.objectContaining({ homeTeamName: "Real Madrid", awayTeamName: "Barcelona" }));
     expect(tournament?.plannedFixtureTeams[1]).toEqual({ round: 2, position: 1, homeTeamName: "Barcelona", awayTeamName: "Real Madrid" });
+  });
+
+  it("loads carousel ranks, names and avatars in batched queries", async () => {
+    const { db } = mockDb([
+      [{ id: "tournament", type: "LEAGUE", status: "ACTIVE" }],
+      [{ id: "home", tournamentId: "tournament", displayName: "Home", seed: 1 }, { id: "away", tournamentId: "tournament", displayName: "Away", seed: 2 }],
+      [{ tournamentId: "tournament", round: 1, matchId: "match", homeCompetitorId: "home", awayCompetitorId: "away" }],
+      [{ competitorId: "home", id: "p1", name: "Cường", avatarUrl: "/cuong.jpg" }, { competitorId: "away", id: "p2", name: "Quang", avatarUrl: null }],
+      [{ id: "match", status: "FINISHED" }],
+      [{ matchId: "match", side: "A", score: 0 }, { matchId: "match", side: "B", score: 2 }],
+    ]);
+    const [tournament] = await listTournamentHighlightRecords();
+    expect(tournament.leaders.entries[0]).toMatchObject({ id: "away", name: "Quang", rank: 1, points: 3, players: [{ id: "p2", name: "Quang", avatarUrl: null }] });
+    expect(tournament.leaders.entries[1].players[0].avatarUrl).toBe("/cuong.jpg");
+    expect(db.select).toHaveBeenCalledTimes(6);
+  });
+
+  it("skips player and score queries when there are no tournaments", async () => {
+    const { db } = mockDb([[], [], []]);
+    expect(await listTournamentHighlightRecords()).toEqual([]);
+    expect(db.select).toHaveBeenCalledTimes(3);
   });
 });

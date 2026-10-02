@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { cancelTournamentRecord, createKnockoutRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentRecords } from "@/repositories/tournament.repository";
+import { cancelTournamentRecord, createKnockoutRecord, createLeagueRecord, getTournamentFixtureForMatchStart, getTournamentRecord, listTournamentHighlightRecords, listTournamentRecords } from "@/repositories/tournament.repository";
 import { getMatchSetupRecords, listLeaderboardMatchRows } from "@/repositories/match.repository";
 import { arenaRating, buildLeaderboard } from "./leaderboard";
 import { buildTournamentTeamPlan } from "./tournament-team-plan";
@@ -80,6 +80,7 @@ async function assertTournamentTeams(teamPoolId: string, teamIds: string[]) {
   }
 }
 export async function listTournaments() { return listTournamentRecords(); }
+export async function listTournamentHighlights() { return listTournamentHighlightRecords(); }
 export async function getTournament(tournamentId: string) {
   if (!z.uuid().safeParse(tournamentId).success) return null;
   return getTournamentRecord(tournamentId);

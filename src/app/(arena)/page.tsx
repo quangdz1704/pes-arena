@@ -30,7 +30,7 @@ import { isDatabaseConfigured } from "@/db";
 import { getFoundationSummary } from "@/repositories/dashboard.repository";
 import { getLeaderboard } from "@/services/leaderboard.service";
 import { listActiveMatches } from "@/services/match.service";
-import { listTournaments } from "@/services/tournament.service";
+import { listTournamentHighlights } from "@/services/tournament.service";
 
 import { TournamentCarousel } from "./tournament-carousel";
 
@@ -56,7 +56,7 @@ export default async function OverviewPage() {
           matchMode: "ALL",
           sort: "RATING",
         }),
-        listTournaments(),
+        listTournamentHighlights(),
       ])
     : [{ players: 0, teams: 0, pools: 0 }, [], [], []];
   const tournamentStatusOrder = {
@@ -81,6 +81,7 @@ export default async function OverviewPage() {
       competitors: tournament.competitors.length,
       fixtures: tournament.fixtures.length,
       createdAt: tournament.createdAt.toISOString(),
+      leaders: tournament.leaders,
     }));
   return (
     <div className="space-y-8">
