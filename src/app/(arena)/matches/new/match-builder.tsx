@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useId, useMemo, useState } from "react";
+import { Fragment, useActionState, useEffect, useId, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ArenaRankMark } from "@/components/shared/arena-rank-mark";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { initialActionState } from "@/lib/action-state";
 import type {
   MatchPlayerDto,
@@ -39,11 +40,45 @@ type RandomTierFilter = "ALL" | "S";
 
 const initialMatchState: MatchActionState = initialActionState;
 
-function PlayerName({ player }: { player: MatchPlayerDto | undefined }) {
-  return player ? (
-    <span className="font-bold">{player.name}</span>
-  ) : (
-    <span className="text-muted-foreground">Chưa chọn</span>
+function PlayerPortrait({ player }: { player: MatchPlayerDto }) {
+  return (
+    <Avatar size="sm">
+      <AvatarImage alt={player.name} src={player.avatarUrl ?? undefined} />
+      <AvatarFallback>{player.name.trim().split(/\s+/).slice(-2).map((part) => part[0]).join("")}</AvatarFallback>
+    </Avatar>
+  );
+}
+
+const selectClassName = "h-10 w-full min-w-0 rounded-lg border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+function SetupTabs<T extends string>({
+  label,
+  value,
+  options,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly (readonly [T, string])[];
+  disabled?: boolean;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div aria-label={label} role="group" className="inline-flex rounded-lg bg-background/70 p-1">
+      {options.map(([option, text]) => (
+        <button
+          aria-pressed={value === option}
+          className={`rounded-md px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-ring ${value === option ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}
+          disabled={disabled}
+          key={option}
+          onClick={() => { if (option !== value) onChange(option); }}
+          type="button"
+        >
+          {text}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -55,10 +90,10 @@ function StartMatchButton({ disabled }: { disabled: boolean }) {
       type="submit"
       size="lg"
       disabled={disabled || pending}
-      className="h-14 w-full rounded-2xl text-base font-black"
+      className="h-11 w-full rounded-xl text-sm font-bold"
     >
       <Gamepad2 className="size-5" />
-      {pending ? "Đang bắt đầu..." : "BẮT ĐẦU TRẬN"}
+      {pending ? "Đang bắt đầu..." : "Bắt đầu trận"}
     </Button>
   );
 }
@@ -93,12 +128,12 @@ function TeamSearchSelect({
           aria-expanded={open}
           aria-controls={listboxId}
           aria-autocomplete="list"
-          aria-label={`Tìm đội cho Side ${label}`}
+          aria-label={`Tìm đội cho bên ${label}`}
           className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none ring-ring/50 placeholder:text-muted-foreground focus-visible:ring-3"
           onChange={(event) => { setQuery(event.target.value); setOpen(true); }}
           onBlur={() => window.setTimeout(() => setOpen(false), 120)}
           onFocus={() => { setQuery(""); setOpen(true); }}
-          placeholder={selectedTeam ? selectedTeam.name : `Tìm đội cho Side ${label}`}
+          placeholder={selectedTeam ? selectedTeam.name : `Tìm đội cho bên ${label}`}
           role="combobox"
           value={query}
         />
@@ -167,7 +202,7 @@ export function MatchBuilder({
   const [rerollCount, setRerollCount] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
   const [isRanked, setIsRanked] = useState(true);
-  const [state, action] = useActionState(startMatchAction, initialMatchState);
+  const [state, action, isPending] = useActionState(startMatchAction, initialMatchState);
 
   const playersPerSide = mode === "ONE_V_ONE" ? 1 : 2;
   const requiredPlayers = playersPerSide * 2;
@@ -341,344 +376,250 @@ export function MatchBuilder({
   });
 
   return (
-    <form action={action} className="space-y-6">
+    <form action={action} className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
       <input type="hidden" name="payload" value={payload} />
 
-      {tournamentFixture ? <Card className="border-primary/20 bg-primary/5"><CardContent className="p-5"><p className="text-xs font-black tracking-[0.18em] text-primary">TRẬN THUỘC GIẢI ĐẤU</p><p className="mt-2 font-black">{tournamentFixture.homeName} <span className="text-muted-foreground">vs</span> {tournamentFixture.awayName}</p><p className="mt-1 text-sm text-muted-foreground">{hasAssignedTournamentTeams ? "Tuyển thủ và đội bóng đã được khóa theo danh sách giải." : "Tuyển thủ được khóa theo lịch thi đấu. Chỉ cần chọn đội bóng để bắt đầu."}</p></CardContent></Card> : null}
+      <fieldset disabled={isRolling || isPending} className="min-w-0 divide-y rounded-2xl border bg-card/80">
+        <legend className="sr-only">Thiết lập trận đấu</legend>
+        <section className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-5">
+          <h2 className="flex items-center gap-2 text-sm font-bold">
+            <Swords aria-hidden className="size-4 text-primary" /> Thể thức
+          </h2>
+          <SetupTabs
+            label="Thể thức trận đấu"
+            value={mode}
+            options={[["ONE_V_ONE", "1 vs 1"], ["TWO_V_TWO", "2 vs 2"]]}
+            disabled={Boolean(tournamentFixture)}
+            onChange={selectMode}
+          />
+        </section>
 
-      <Card className="border-primary/20 bg-card/80">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Swords className="size-5 text-primary" /> 1. Chọn chế độ
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
-          {(
-            [
-              ["ONE_V_ONE", "1 VS 1", "Đấu tay đôi"],
-              ["TWO_V_TWO", "2 VS 2", "Phối hợp đồng đội"],
-            ] as const
-          ).map(([value, label, description]) => (
-            <button
-              key={value}
-              type="button"
-              disabled={Boolean(tournamentFixture)}
-              onClick={() => selectMode(value)}
-              className={`rounded-2xl border p-4 text-left transition ${mode === value ? "border-primary bg-primary/10 shadow-[0_0_24px_rgba(106,255,148,0.12)]" : "border-white/10 bg-background/40 hover:border-white/25"}`}
-            >
-              <span className="block text-lg font-black">{label}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {description}
+        <section className="space-y-3 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-bold">
+              <UsersRound aria-hidden className="size-4 text-primary" /> Người chơi
+              <span className="text-xs font-normal tabular-nums text-muted-foreground">
+                {selectedPlayerIds.length}/{requiredPlayers}
               </span>
-            </button>
-          ))}
-        </CardContent>
-      </Card>
-
-      {!hasAssignedTournamentTeams ? <Card className="border-white/10 bg-card/80">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Swords className="size-5 text-primary" /> Cách tạo kèo
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
-          {(
-            [
-              ["RANDOM", "🎲 Random", "Quay đội bóng theo chế độ đã chọn"],
-              ["MANUAL", "✍️ Thủ công", "Tự chọn đội cho từng bên"],
-            ] as const
-          ).map(([value, label, description]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => selectMatchSetupMode(value)}
-              className={`rounded-2xl border p-4 text-left transition ${matchSetupMode === value ? "border-primary bg-primary/10 shadow-[0_0_24px_rgba(106,255,148,0.12)]" : "border-white/10 bg-background/40 hover:border-white/25"}`}
-            >
-              <span className="block text-lg font-black">{label}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                {description}
-              </span>
-            </button>
-          ))}
-        </CardContent>
-      </Card> : null}
-
-      <Card className="border-white/10 bg-card/80">
-        <CardHeader className="flex-row items-center justify-between gap-3">
-          <CardTitle className="flex items-center gap-2">
-            <UsersRound className="size-5 text-primary" /> 2. Chọn người chơi
-          </CardTitle>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={randomPlayers}
-            disabled={Boolean(tournamentFixture) || setup.players.length < requiredPlayers}
-          >
-            <Dices className="size-4" /> Chọn ngẫu nhiên
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Chọn {requiredPlayers} người khác nhau. Đang chọn{" "}
-            {selectedPlayerIds.length}/{requiredPlayers}.
-          </p>
-          {setup.players.length < requiredPlayers ? (
-            <p className="rounded-xl bg-amber-400/10 p-4 text-sm text-amber-200">
-              Cần có ít nhất {requiredPlayers} người chơi đang hoạt động. Hãy
-              thêm ở mục Người chơi.
+            </h2>
+            {!tournamentFixture ? (
+              <div className="flex items-center gap-1">
+                {mode === "TWO_V_TWO" ? (
+                  <Button type="button" variant="ghost" size="sm" onClick={reshufflePairs} disabled={selectedPlayerIds.length !== 4}>
+                    <Shuffle className="size-3.5" /> Đổi cặp
+                  </Button>
+                ) : null}
+                <Button type="button" variant="ghost" size="sm" onClick={randomPlayers} disabled={setup.players.length < requiredPlayers}>
+                  <Dices className="size-3.5" /> Random
+                </Button>
+              </div>
+            ) : null}
+          </div>
+          {tournamentFixture ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Người chơi đã được chốt theo lịch thi đấu của giải.
             </p>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {setup.players.map((player) => {
-                const selected = selectedPlayerIds.includes(player.id);
-                return (
-                  <button
-                    key={player.id}
-                    type="button"
-                    onClick={() => togglePlayer(player.id)}
-                    disabled={Boolean(tournamentFixture)}
-                    className={`flex min-h-12 items-center justify-between rounded-xl border px-4 text-left transition ${selected ? "border-primary bg-primary/10" : "border-white/10 bg-background/40 hover:border-white/25"}`}
-                  >
-                    <span className="font-bold">{player.name}</span>
-                    {player.nickname ? (
-                      <span className="text-xs text-muted-foreground">
-                        {player.nickname}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-center text-sm">
-              <PlayerName player={playerById.get(sideAPlayerIds[0] ?? "")} />
-              {sideAPlayerIds[1] ? (
-                <>
-                  {" "}
-                  <span className="text-primary">+</span>{" "}
-                  <PlayerName player={playerById.get(sideAPlayerIds[1])} />
-                </>
-              ) : null}
-            </div>
-            <span className="text-center text-xs font-black tracking-[0.2em] text-primary">
-              VS
-            </span>
-            <div className="rounded-xl border border-blue-400/20 bg-blue-400/5 p-3 text-center text-sm">
-              <PlayerName player={playerById.get(sideBPlayerIds[0] ?? "")} />
-              {sideBPlayerIds[1] ? (
-                <>
-                  {" "}
-                  <span className="text-blue-300">+</span>{" "}
-                  <PlayerName player={playerById.get(sideBPlayerIds[1])} />
-                </>
-              ) : null}
-            </div>
-          </div>
-          {mode === "TWO_V_TWO" ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={reshufflePairs}
-              disabled={selectedPlayerIds.length !== 4}
-              className="w-full"
-            >
-              <Shuffle className="size-4" /> Đổi cặp (giữ nguyên 4 người)
-            </Button>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="relative z-20 overflow-visible border-white/10 bg-card/80">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Dices className="size-5 text-primary" /> 3. {hasAssignedTournamentTeams ? "Đội đã gán cho trận" : matchSetupMode === "RANDOM" ? "Random đội bóng" : "Chọn đội bóng"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!hasAssignedTournamentTeams ? <div className="grid gap-2 sm:grid-cols-2">
-            {setup.pools.map((pool) => (
-              <button
-                key={pool.id}
-                type="button"
-                onClick={() => changePool(pool.id)}
-                className={`rounded-xl border p-3 text-left transition ${poolId === pool.id ? "border-primary bg-primary/10" : "border-white/10 bg-background/40 hover:border-white/25"}`}
-              >
-                <span className="font-bold">
-                  {pool.emoji ?? "🎲"} {pool.name}
-                </span>
-                <span className="mt-1 block text-xs text-muted-foreground">
-                  {pool.teams.length} đội khả dụng
-                </span>
-              </button>
-            ))}
-          </div> : null}
-          {!selectedPool ? (
-            <p className="rounded-xl bg-amber-400/10 p-4 text-sm text-amber-200">
-              Chưa có nhóm đội đang hoạt động.
+            <p className="text-xs text-muted-foreground">
+              {mode === "ONE_V_ONE" ? "Chọn lần lượt bên A, rồi bên B." : "Hai người đầu là bên A, hai người tiếp theo là bên B."}
             </p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {setup.players.map((player) => {
+              const side = sideAPlayerIds.includes(player.id) ? "A" : sideBPlayerIds.includes(player.id) ? "B" : null;
+              return (
+                <button
+                  aria-pressed={Boolean(side)}
+                  className={`inline-flex min-h-10 max-w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring ${side === "A" ? "border-primary/40 bg-primary/10" : side === "B" ? "border-sky-400/40 bg-sky-400/10" : "border-transparent bg-background/60 hover:border-border"}`}
+                  disabled={Boolean(tournamentFixture)}
+                  key={player.id}
+                  onClick={() => togglePlayer(player.id)}
+                  title={player.nickname ?? undefined}
+                  type="button"
+                >
+                  <PlayerPortrait player={player} />
+                  <span className="min-w-0 break-words font-semibold">{player.name}</span>
+                  {side ? <span className={`text-[10px] font-bold ${side === "A" ? "text-primary" : "text-sky-400"}`}>{side}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+          {setup.players.length < requiredPlayers ? (
+            <p className="text-xs text-amber-400">Cần ít nhất {requiredPlayers} người chơi đang hoạt động. Hãy thêm ở mục Người chơi.</p>
           ) : null}
+        </section>
+
+        <section className="relative space-y-4 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-bold">
+              <Dices aria-hidden className="size-4 text-primary" /> Đội bóng
+            </h2>
+            {!hasAssignedTournamentTeams ? (
+              <SetupTabs
+                label="Cách chọn đội bóng"
+                value={matchSetupMode}
+                options={[["RANDOM", "Random"], ["MANUAL", "Chọn tay"]]}
+                onChange={selectMatchSetupMode}
+              />
+            ) : <span className="text-xs text-primary">Đã gán theo lịch</span>}
+          </div>
+          {!hasAssignedTournamentTeams ? (
+            <label className="block space-y-1.5 text-xs text-muted-foreground">
+              <span>Nhóm đội</span>
+              <select className={selectClassName} value={poolId} onChange={(event) => changePool(event.target.value)}>
+                {!setup.pools.length ? <option value="">Chưa có nhóm đội</option> : null}
+                {setup.pools.map((pool) => (
+                  <option key={pool.id} value={pool.id}>{pool.emoji ?? "🎲"} {pool.name} · {pool.teams.length} đội</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="text-xs text-muted-foreground">Đội bóng được giữ theo lựa chọn đã gán cho trận này.</p>
+          )}
+          {!selectedPool ? <p className="text-xs text-amber-400">Chưa có nhóm đội đang hoạt động.</p> : null}
+
           {!hasAssignedTournamentTeams && matchSetupMode === "RANDOM" ? (
             <>
               <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    [
-                      "BALANCED",
-                      "⚖️ Cân bằng",
-                      "Ưu tiên cùng tier, rating gần nhau",
-                    ],
-                    ["PURE", "🎲 Ngẫu nhiên", "Có thể ra kèo chênh lệch"],
-                  ] as const
-                ).map(([value, label, description]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setRandomMode(value);
-                      setTeamIds(null);
-                      setRerollCount(0);
-                    }}
-                    className={`rounded-xl border p-3 text-left transition ${randomMode === value ? "border-primary bg-primary/10" : "border-white/10 bg-background/40 hover:border-white/25"}`}
+                <label className="min-w-0 space-y-1.5 text-xs text-muted-foreground">
+                  <span>Cách random</span>
+                  <select
+                    className={selectClassName}
+                    value={randomMode}
+                    onChange={(event) => { setRandomMode(event.target.value as RandomMode); setTeamIds(null); setRerollCount(0); }}
                   >
-                    <span className="block font-bold">{label}</span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      {description}
-                    </span>
-                  </button>
-                ))}
+                    <option value="BALANCED">Cân bằng</option>
+                    <option value="PURE">Hoàn toàn ngẫu nhiên</option>
+                  </select>
+                </label>
+                <label className="min-w-0 space-y-1.5 text-xs text-muted-foreground">
+                  <span>Tier đội bóng</span>
+                  <select
+                    className={selectClassName}
+                    value={randomTierFilter}
+                    onChange={(event) => { setRandomTierFilter(event.target.value as RandomTierFilter); setTeamIds(null); setRerollCount(0); }}
+                  >
+                    <option value="ALL">Mọi tier</option>
+                    <option value="S">Siêu sao · Tier S</option>
+                  </select>
+                </label>
+                <label className="col-span-2 space-y-1.5 text-xs text-muted-foreground">
+                  <span>Giải đấu</span>
+                  <select
+                    className={selectClassName}
+                    value={competitionFilter}
+                    onChange={(event) => { setCompetitionFilter(event.target.value); setTeamIds(null); setRerollCount(0); }}
+                  >
+                    <option value="ALL">Tất cả giải đấu</option>
+                    {availableCompetitions.map((competition) => <option key={competition} value={competition}>{competition}</option>)}
+                  </select>
+                </label>
               </div>
-              <div className="rounded-xl border border-white/10 bg-background/35 p-3">
-                <p className="text-xs font-bold tracking-[0.14em] text-muted-foreground">BỘ LỌC ĐỘI RANDOM</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(["ALL", "S"] as const).map((value) => (
-                    <button
-                      className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${randomTierFilter === value ? "border-primary bg-primary/10 text-primary" : "border-white/10 text-muted-foreground hover:border-white/25"}`}
-                      key={value}
-                      onClick={() => { setRandomTierFilter(value); setTeamIds(null); setRerollCount(0); }}
-                      type="button"
-                    >
-                      {value === "ALL" ? "Mọi tier" : "⭐ Siêu sao · Tier S"}
-                    </button>
-                  ))}
-                </div>
-                <label className="mt-3 block text-xs font-semibold text-muted-foreground" htmlFor="random-competition">Giải đấu</label>
-                <select
-                  className="mt-1.5 h-10 w-full rounded-lg border border-white/10 bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  id="random-competition"
-                  onChange={(event) => { setCompetitionFilter(event.target.value); setTeamIds(null); setRerollCount(0); }}
-                  value={competitionFilter}
-                >
-                  <option value="ALL">Tất cả giải đấu</option>
-                  {availableCompetitions.map((competition) => <option key={competition} value={competition}>{competition}</option>)}
-                </select>
-                <p className="mt-2 text-xs text-muted-foreground">{randomCandidateTeams.length} đội phù hợp. Random sẽ tránh các đội vừa xuất hiện nếu pool còn lựa chọn khác.</p>
-              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {randomCandidateTeams.length} đội phù hợp · {randomMode === "BALANCED" ? "Ưu tiên cùng tier hoặc điểm sức mạnh gần nhau." : "Có thể ra kèo chênh lệch."} Hạn chế lặp đội vừa đá khi còn lựa chọn khác.
+              </p>
               <Button
                 type="button"
-                size="lg"
+                variant="secondary"
                 onClick={randomTeams}
                 disabled={!selectedPool || randomCandidateTeams.length < 2 || isRolling}
-                className="h-12 w-full rounded-xl font-black"
+                className="h-10 w-full rounded-lg"
               >
-                {isRolling ? <RefreshCw className="size-5 animate-spin" /> : <Dices className="size-5" />}
-                {teamIds ? "QUAY LẠI" : "QUAY ĐỘI"}
+                {isRolling ? <RefreshCw className="size-4 animate-spin" /> : <Dices className="size-4" />}
+                {isRolling ? "Đang quay..." : teamIds ? "Quay lại đội bóng" : "Quay đội bóng"}
               </Button>
+              {selectedPool && randomCandidateTeams.length < 2 ? (
+                <p className="text-xs text-amber-400">Cần ít nhất 2 đội phù hợp. Hãy đổi bộ lọc hoặc nhóm đội.</p>
+              ) : null}
             </>
           ) : !hasAssignedTournamentTeams ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              {([0, 1] as const).map((sideIndex) => {
-                const otherTeamId = teamIds?.[sideIndex === 0 ? 1 : 0];
-                const sideLabel = sideIndex === 0 ? "A" : "B";
-
-                return (
-                  <div key={sideIndex}>
-                    <p className="mb-2 text-xs font-bold tracking-[0.18em] text-muted-foreground">
-                      SIDE {sideLabel}
-                    </p>
-                    <TeamSearchSelect
-                      label={sideLabel}
-                      onSelect={(teamId) => selectManualTeam(sideIndex, teamId)}
-                      selectedTeamId={teamIds?.[sideIndex]}
-                      teams={selectedPool?.teams ?? []}
-                      unavailableTeamId={otherTeamId}
-                    />
-                  </div>
-                );
-              })}
+              {([0, 1] as const).map((sideIndex) => (
+                <div key={sideIndex} className="min-w-0">
+                  <p className={`mb-2 text-xs font-semibold ${sideIndex === 0 ? "text-primary" : "text-sky-400"}`}>
+                    Bên {sideIndex === 0 ? "A" : "B"} · {(sideIndex === 0 ? sideAPlayerIds : sideBPlayerIds).map((id) => playerById.get(id)?.name).join(" + ") || "Chưa chọn người chơi"}
+                  </p>
+                  <TeamSearchSelect
+                    label={sideIndex === 0 ? "A" : "B"}
+                    onSelect={(teamId) => selectManualTeam(sideIndex, teamId)}
+                    selectedTeamId={teamIds?.[sideIndex]}
+                    teams={selectedPool?.teams ?? []}
+                    unavailableTeamId={teamIds?.[sideIndex === 0 ? 1 : 0]}
+                  />
+                </div>
+              ))}
             </div>
           ) : null}
-          <div
-            className={`grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center ${isRolling ? "animate-pulse" : ""}`}
-          >
-            {[selectedTeams?.[0]].map((team, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-white/10 bg-background/60 p-5 text-center"
-              >
-                <p className="text-xs font-bold tracking-[0.18em] text-muted-foreground">
-                  SIDE A
-                </p>
-                <p className="mt-2 text-lg font-black">{team?.name ?? "?"}</p>
-                {team ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Tier {team.tier} · {team.rating}
+        </section>
+      </fieldset>
+
+      <aside className="min-w-0 rounded-2xl border bg-card xl:sticky xl:top-20" aria-label="Xem trước trận đấu">
+        <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
+          <h2 className="text-sm font-bold">Kèo đấu của bạn</h2>
+          <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+            {tournamentFixture ? "Đấu giải" : isRanked ? "Giao hữu xếp hạng" : "Giao hữu"} · {mode === "ONE_V_ONE" ? "1v1" : "2v2"}
+          </span>
+        </div>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 px-4 py-5">
+          {([0, 1] as const).map((sideIndex) => {
+            const playerIds = sideIndex === 0 ? sideAPlayerIds : sideBPlayerIds;
+            const team = selectedTeams?.[sideIndex];
+            return (
+              <Fragment key={sideIndex}>
+                <div className="min-w-0 space-y-3 text-center">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${sideIndex === 0 ? "text-primary" : "text-sky-400"}`}>
+                    Bên {sideIndex === 0 ? "A" : "B"}
                   </p>
-                ) : null}
-              </div>
-            ))}
-            <span className="hidden text-center text-sm font-black text-primary sm:block">
-              VS
-            </span>
-            {[selectedTeams?.[1]].map((team, index) => (
-              <div
-                key={index}
-                className="rounded-2xl border border-white/10 bg-background/60 p-5 text-center"
-              >
-                <p className="text-xs font-bold tracking-[0.18em] text-muted-foreground">
-                  SIDE B
-                </p>
-                <p className="mt-2 text-lg font-black">{team?.name ?? "?"}</p>
-                {team ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Tier {team.tier} · {team.rating}
-                  </p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          {matchSetupMode === "RANDOM" && rerollCount > 0 ? (
-            <p className="text-center text-xs text-muted-foreground">
-              Đã quay lại {rerollCount} lần.
-            </p>
+                  <div className="space-y-2">
+                    {Array.from({ length: playersPerSide }, (_, index) => {
+                      const player = playerById.get(playerIds[index] ?? "");
+                      return (
+                        <div key={index} className="flex min-h-8 flex-col items-center gap-1.5">
+                          {player ? <PlayerPortrait player={player} /> : <UsersRound aria-hidden className="size-6 text-muted-foreground/40" />}
+                          <p className={`break-words text-sm leading-snug ${player ? "font-bold" : "text-muted-foreground"}`}>{player?.name ?? "Chưa chọn"}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className={`border-t pt-3 ${isRolling ? "animate-pulse" : ""}`}>
+                    <p className="break-words text-sm font-semibold leading-snug">{team?.name ?? "Chưa chọn đội"}</p>
+                    {team ? <p className="mt-1 text-[11px] text-muted-foreground">Tier {team.tier} · {team.rating}</p> : null}
+                  </div>
+                </div>
+                {sideIndex === 0 ? <span className="mt-10 text-xs font-black italic text-muted-foreground/60">VS</span> : null}
+              </Fragment>
+            );
+          })}
+        </div>
+
+        <div className="space-y-4 border-t p-4">
+          {tournamentFixture ? (
+            <p className="text-xs leading-relaxed text-muted-foreground">Trận thuộc giải đấu, không tính Điểm Arena hay BXH giao hữu.</p>
+          ) : (
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={isRanked}
+                onChange={(event) => setIsRanked(event.target.checked)}
+                disabled={isPending || isRolling}
+                className="mt-0.5 size-4 accent-primary"
+              />
+              <span className="space-y-1">
+                <span className="flex items-center gap-1.5 text-sm font-semibold"><ArenaRankMark className="size-4" /> Tính Điểm Arena</span>
+                <span className="block text-xs text-muted-foreground">{isRanked ? "Cập nhật BXH giao hữu sau khi có kết quả." : "Chỉ lưu lịch sử, không tính BXH giao hữu."}</span>
+              </span>
+            </label>
+          )}
+          {matchSetupMode === "RANDOM" && !hasAssignedTournamentTeams && rerollCount > 0 ? (
+            <p className="text-xs text-muted-foreground">Đã quay lại {rerollCount} lần.</p>
           ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="border-white/10 bg-card/80">
-        <CardContent className="flex items-center justify-between gap-4 py-4">
-          <div>
-            <p className="font-bold">Trận xếp hạng</p>
-            <p className="text-xs text-muted-foreground">
-              Kết quả sẽ tính vào thống kê ở Phase 3.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsRanked((value) => !value)}
-            className={`rounded-full border px-4 py-2 text-xs font-black ${isRanked ? "border-primary bg-primary/10 text-primary" : "border-white/10 text-muted-foreground"}`}
-          >
-            {isRanked ? "BẬT" : "TẮT"}
-          </button>
-        </CardContent>
-      </Card>
-
-      {state.status === "error" ? (
-        <p className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
-          {state.message}
-        </p>
-      ) : null}
-      <StartMatchButton disabled={!selectionReady || isRolling} />
+          {state.status === "error" ? (
+            <p role="alert" className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">{state.message}</p>
+          ) : null}
+          <StartMatchButton disabled={!selectionReady || isRolling} />
+          {!selectionReady ? <p className="text-center text-xs text-muted-foreground">Chọn đủ {requiredPlayers} người và 2 đội để bắt đầu.</p> : null}
+        </div>
+      </aside>
     </form>
   );
 }

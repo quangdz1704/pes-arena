@@ -19,8 +19,8 @@ export default async function NewMatchPage({ searchParams }: { searchParams: Pro
     : [null, null];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-7">
-      <PageHeading eyebrow="Thi đấu" title="Trận mới" description="Chọn kèo 1v1 hoặc 2v2, random đội và bắt đầu đá PES." />
+    <div className="mx-auto max-w-5xl space-y-5">
+      <PageHeading eyebrow="Thi đấu" title="Tạo trận" description="Chọn người, chọn đội. Chốt kèo và vào sân." />
       {setup ? <MatchBuilder setup={setup} tournamentFixture={tournamentFixture} /> : <DatabaseSetupNotice />}
     </div>
   );
