@@ -2,11 +2,12 @@
 
 import { Fragment, useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Dices, X } from "lucide-react";
+import { ChevronDown, Dices, UsersRound, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { initialActionState } from "@/lib/action-state";
+import { pickUnique } from "@/services/match-randomization";
 import {
   buildTournamentTeamPlan,
   getSameTierTeamGroups,
@@ -16,8 +17,8 @@ import {
 } from "@/services/tournament-team-plan";
 
 import { createTournamentAction } from "./actions";
+import { ParticipantChips, type TournamentPlayerOption } from "./participant-chips";
 
-type PlayerOption = { id: string; name: string };
 type TeamOption = {
   id: string;
   name: string;
@@ -83,7 +84,7 @@ export function TournamentForm({
   pools,
 }: {
   onSuccess: () => void;
-  players: PlayerOption[];
+  players: TournamentPlayerOption[];
   pools: PoolOption[];
 }) {
   const router = useRouter();
@@ -169,7 +170,38 @@ export function TournamentForm({
     setMode(nextMode);
     setSelectedPlayerIds([]);
     setPairs([]);
+    setFirstPlayerId("");
+    setSecondPlayerId("");
     resetAssignments();
+  };
+  const toggleParticipant = (playerId: string) => {
+    if (mode === "ONE_V_ONE") {
+      setSelectedPlayerIds((current) => current.includes(playerId)
+        ? current.filter((id) => id !== playerId)
+        : current.length < 8 ? [...current, playerId] : current);
+      resetAssignments();
+    } else {
+      if (usedPlayerIds.includes(playerId) || pairs.length >= 8) return;
+      if (firstPlayerId === playerId) setFirstPlayerId("");
+      else if (secondPlayerId === playerId) setSecondPlayerId("");
+      else if (!firstPlayerId) setFirstPlayerId(playerId);
+      else if (!secondPlayerId) setSecondPlayerId(playerId);
+    }
+  };
+  const randomizeParticipants = () => {
+    if (mode === "TWO_V_TWO") {
+      const available = players.filter((player) => !usedPlayerIds.includes(player.id));
+      if (available.length < 2 || pairs.length >= 8) return;
+      const [first, second] = pickUnique(available, 2);
+      setFirstPlayerId(first.id);
+      setSecondPlayerId(second.id);
+    } else {
+      const requestedCount = selectedPlayerIds.length >= 2 ? selectedPlayerIds.length : Math.min(players.length, 8);
+      const count = type === "KNOCKOUT" ? [8, 4, 2].find((size) => size <= requestedCount) ?? 0 : requestedCount;
+      if (count < 2) return;
+      setSelectedPlayerIds(pickUnique(players, count).map((player) => player.id));
+      resetAssignments();
+    }
   };
   const addPair = () => {
     if (
@@ -355,97 +387,49 @@ export function TournamentForm({
           aria-label="Người tham gia"
           className="space-y-3 border-t border-white/10 pt-4"
         >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold">Người tham gia</h3>
-            <span className="text-xs text-muted-foreground">
-              {competitors.length}/{8} {mode === "ONE_V_ONE" ? "người" : "cặp"}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-sm font-bold">
+              <UsersRound aria-hidden className="size-4 text-primary" /> Người tham gia
+              <span className="text-xs font-normal tabular-nums text-muted-foreground">
+                {mode === "ONE_V_ONE" ? `${selectedPlayerIds.length}/${Math.min(players.length, 8)}` : `${pairs.length}/8 cặp`}
+              </span>
+            </h3>
+            <Button
+              disabled={pending || (mode === "ONE_V_ONE" ? players.length < 2 : pairs.length >= 8 || players.length - usedPlayerIds.length < 2)}
+              onClick={randomizeParticipants}
+              size="sm"
+              title={mode === "ONE_V_ONE" ? "Random người tham gia; giữ số lượng đã chọn, mặc định tối đa 8 người." : "Chọn ngẫu nhiên 2 người chưa được ghép cặp."}
+              type="button"
+              variant="ghost"
+            >
+              <Dices className="size-3.5" /> {mode === "ONE_V_ONE" ? "Random" : "Random cặp"}
+            </Button>
           </div>
-          {mode === "ONE_V_ONE" ? (
-            <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
-              {players.map((player) => {
-                const selected = selectedPlayerIds.includes(player.id);
-                return (
-                  <button
-                    aria-pressed={selected}
-                    className={
-                      "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40 " +
-                      (selected
-                        ? "bg-primary/15 text-primary"
-                        : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground")
-                    }
-                    disabled={!selected && selectedPlayerIds.length >= 8}
-                    key={player.id}
-                    onClick={() => {
-                      setSelectedPlayerIds((current) =>
-                        selected
-                          ? current.filter((id) => id !== player.id)
-                          : [...current, player.id],
-                      );
-                      resetAssignments();
-                    }}
-                    type="button"
-                  >
-                    {selected ? <Check className="size-3.5" /> : null}
-                    {player.name}
-                  </button>
-                );
-              })}
-              {!players.length ? (
-                <p className="text-xs text-muted-foreground">
-                  Chưa có người chơi đang hoạt động.
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {mode === "ONE_V_ONE" ? "Chọn người tham gia giải, tối đa 8 người." : "Chọn 2 người chung đội, rồi nhấn Thêm cặp. Nhãn Cặp cho biết ai đã chung đội."}
+          </p>
+          <ParticipantChips
+            disabled={pending}
+            draftIds={[firstPlayerId, secondPlayerId].filter(Boolean)}
+            isDoubles={mode === "TWO_V_TWO"}
+            onToggle={toggleParticipant}
+            pairs={pairs}
+            players={players}
+            selectedIds={selectedPlayerIds}
+          />
+          {mode === "TWO_V_TWO" ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="min-w-0 break-words text-xs text-muted-foreground">
+                  Cặp tiếp theo · {[firstPlayerId, secondPlayerId].filter(Boolean).length}/2
+                  {firstPlayerId || secondPlayerId ? <span className="ml-2 font-semibold text-foreground">
+                    {[firstPlayerId, secondPlayerId].filter(Boolean).map((id) => players.find((player) => player.id === id)?.name).join(" + ")}
+                  </span> : null}
                 </p>
-              ) : null}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-[1fr_1fr_auto]">
-                <select
-                  aria-label="Người chơi thứ nhất"
-                  className={fieldClass}
-                  onChange={(event) => setFirstPlayerId(event.target.value)}
-                  value={firstPlayerId}
-                >
-                  <option value="">Người thứ nhất</option>
-                  {players.map((player) => (
-                    <option
-                      disabled={
-                        usedPlayerIds.includes(player.id) ||
-                        player.id === secondPlayerId
-                      }
-                      key={player.id}
-                      value={player.id}
-                    >
-                      {player.name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Người chơi thứ hai"
-                  className={fieldClass}
-                  onChange={(event) => setSecondPlayerId(event.target.value)}
-                  value={secondPlayerId}
-                >
-                  <option value="">Người thứ hai</option>
-                  {players.map((player) => (
-                    <option
-                      disabled={
-                        usedPlayerIds.includes(player.id) ||
-                        player.id === firstPlayerId
-                      }
-                      key={player.id}
-                      value={player.id}
-                    >
-                      {player.name}
-                    </option>
-                  ))}
-                </select>
                 <Button
-                  className="col-span-2 sm:col-span-1"
-                  disabled={
-                    !firstPlayerId || !secondPlayerId || pairs.length >= 8
-                  }
+                  disabled={pending || !firstPlayerId || !secondPlayerId || pairs.length >= 8}
                   onClick={addPair}
+                  size="sm"
                   type="button"
                   variant="secondary"
                 >
@@ -458,10 +442,12 @@ export function TournamentForm({
                     className="inline-flex items-center gap-2 rounded-full bg-primary/10 py-1.5 pl-3 pr-1.5 text-xs font-semibold text-primary"
                     key={pair.join("-")}
                   >
+                    <span className="text-[10px] text-muted-foreground">Cặp {index + 1}</span>
                     {labels[index]}
                     <button
                       aria-label={"Bỏ cặp " + labels[index]}
                       className="rounded-full p-1 hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      disabled={pending}
                       onClick={() => {
                         setPairs((current) =>
                           current.filter((_, pairIndex) => pairIndex !== index),
@@ -476,7 +462,7 @@ export function TournamentForm({
                 ))}
               </div>
             </div>
-          )}
+          ) : null}
         </section>
 
         <section

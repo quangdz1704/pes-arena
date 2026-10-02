@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/dialog";
 
 import { TournamentForm } from "./league-form";
+import type { TournamentPlayerOption } from "./participant-chips";
 
-type PlayerOption = { id: string; name: string };
 type TeamOption = { id: string; name: string; shortName: string; tier: "S" | "A" | "B" | "C"; rating: number };
 type PoolOption = { id: string; name: string; emoji: string | null; teams: TeamOption[] };
 
-export function CreateTournamentDialog({ players, pools }: { players: PlayerOption[]; pools: PoolOption[] }) {
+export function CreateTournamentDialog({ players, pools }: { players: TournamentPlayerOption[]; pools: PoolOption[] }) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog onOpenChange={setOpen} open={open}>

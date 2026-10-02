@@ -19,7 +19,7 @@ export default async function TournamentsPage() {
   const tournamentHistory = tournaments.filter((tournament) => tournament.status !== "ACTIVE");
   const activePlayers = players
     .filter((player) => player.isActive)
-    .map((player) => ({ id: player.id, name: player.name }));
+    .map((player) => ({ id: player.id, name: player.name, avatarUrl: player.avatarUrl }));
 
   const tournamentCards = (items: typeof tournaments) => (
     <div className="space-y-3">
