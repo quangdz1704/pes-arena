@@ -29,11 +29,11 @@ export function CreateTournamentDialog({ players, pools }: { players: PlayerOpti
           Tạo giải
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 sm:max-w-3xl">
-        <DialogHeader className="pr-9">
+      <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 border-b border-white/10 px-5 py-4 pr-12">
           <DialogTitle className="text-xl font-black">Tạo giải mới</DialogTitle>
           <DialogDescription>
-            Chọn thể thức, người chơi và PES Arena sẽ tự sinh lịch thi đấu.
+            Chọn người chơi, Arena lo lịch thi đấu.
           </DialogDescription>
         </DialogHeader>
         <TournamentForm onSuccess={() => setOpen(false)} players={players} pools={pools} />
