@@ -35,6 +35,8 @@ describe("compact match creation", () => {
     const html = renderToStaticMarkup(<MatchBuilder setup={setup} tournamentFixture={null} />);
 
     expect(html).toContain("Siêu sao · Tier S");
+    expect(html).toContain('<option value="A">Tier A</option>');
+    expect(html).toContain('<option value="B">Tier B</option>');
     expect(html).toContain("Hoàn toàn ngẫu nhiên");
     expect(html).toContain("Tất cả giải đấu");
     expect(html).toContain("Tính Điểm Arena");

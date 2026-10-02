@@ -36,7 +36,7 @@ import { startMatchAction, type MatchActionState } from "../actions";
 type MatchMode = "ONE_V_ONE" | "TWO_V_TWO";
 type RandomMode = "PURE" | "BALANCED";
 type MatchSetupMode = "RANDOM" | "MANUAL";
-type RandomTierFilter = "ALL" | "S";
+type RandomTierFilter = "ALL" | "S" | "A" | "B";
 
 const initialMatchState: MatchActionState = initialActionState;
 
@@ -501,6 +501,8 @@ export function MatchBuilder({
                   >
                     <option value="ALL">Mọi tier</option>
                     <option value="S">Siêu sao · Tier S</option>
+                    <option value="A">Tier A</option>
+                    <option value="B">Tier B</option>
                   </select>
                 </label>
                 <label className="col-span-2 space-y-1.5 text-xs text-muted-foreground">
